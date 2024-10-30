@@ -1,2 +1,2 @@
-# pytorch_demos
+# PyTorch Excercises (using Attention)
 PyTorch demos and exercises (pure Python)
