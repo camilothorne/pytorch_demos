@@ -190,7 +190,7 @@ def train_variant(dnn:torch.nn.Module,
             ecount = ecount + 1
 
     print("--------------------")
-    print("accuracy (best): %.2f" % best_acc)
+    print("Accuracy (best): %.2f" % best_acc)
     print(loss_fun + " (best): %.2f" % best_loss)
     print("--------------------")
 
@@ -221,7 +221,7 @@ def test_variant(dnn:torch.nn.Module,
     df['pred'] = df.pred.astype(int).map(labd)
     df.to_csv(path, index=False)
     
-    result = "--------------------\n" + classification_report(df.gold, 
-                                                              df.pred, 
-                                                              zero_division=0)
+    result = classification_report(df.gold, 
+                                   df.pred, 
+                                   zero_division=0)
     return result

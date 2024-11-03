@@ -46,6 +46,8 @@ def classif_exp(model:torch.nn.Module,
                        val_history=val_history, 
                        path=f"./plots_and_stats/ce_loss_bow_{name}.png", loss_fun="CE loss")
 
+   print(f"Performance on test set")
+   print("--------------------")
    print(test_variant(dnn=trained_model, 
                       X_test=torch.tensor(test_data[0].todense(), dtype=torch.float32), 
                       y_test=np.asarray(test_data[1].todense()),
