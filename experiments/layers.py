@@ -2,9 +2,11 @@ import math, copy, os.path
 import torch
 from typing import Union
 
+
 '''
 Custom attention layers
 '''
+
 
 class BertAttention(torch.nn.Module):
     '''
@@ -101,14 +103,33 @@ class SelfAttention(torch.nn.Module):
         context = input * alpha
         output = torch.nn.functional.sum(context, dim=1)
         return context, output
-    
+
+
 '''
 Model architectures
 '''
 
+
+class ModLogReg(torch.nn.Module):
+    '''
+    Logistic regression in Pytorch (single layer followed by softmax)
+    '''
+    def __init__(self, input_features, 
+                 out_features):
+
+        super(ModLogReg, self).__init__()
+        self.linear = torch.nn.Linear(input_features, out_features)
+        self.output_layer = torch.nn.Softmax(dim=-1)
+
+    def forward(self, input:torch.tensor) -> torch.tensor:
+        lin = self.linear(input)
+        out = self.output_layer(lin)
+        return out 
+
+
 class ModBertAttention(torch.nn.Module):
     '''
-    Custom model using custom BERR-like layer
+    Custom model using custom BERT-like layer
     '''
     def __init__(self, input_features, 
                  out_features, 

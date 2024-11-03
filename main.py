@@ -1,12 +1,8 @@
 from experiments.train_and_test import *
 from experiments.bow_enc import *
-from experiments.layers import ModBertAttention, ModSelfAttention
+from experiments.layers import ModBertAttention, ModLogReg
 import torch
 
-
-# def self_attention():
-#    model = ModSelfAttention()
-#    pass
 
 def classif_exp(model:torch.nn.Module,
                 train_data: np.array,
@@ -15,7 +11,7 @@ def classif_exp(model:torch.nn.Module,
                 labdict:dict,
                 name:str) -> None:
    '''
-   Train and test BOW document classifier 
+   Train and test document classifier 
    '''
 
    print("--------------------")
@@ -44,7 +40,7 @@ def classif_exp(model:torch.nn.Module,
 
    plot_training_curve(loss_history=loss_history, 
                        val_history=val_history, 
-                       path=f"./plots_and_stats/ce_loss_bow_{name}.png", loss_fun="CE loss")
+                       path=f"./plots_and_stats/ce_loss_{name}.png", loss_fun="CE loss")
 
    print(f"Performance on test set")
    print("--------------------")
@@ -58,7 +54,7 @@ def classif_exp(model:torch.nn.Module,
 if __name__ == '__main__':
 
    '''
-   Pre-process data
+   Pre-process data using BOW encoder
    '''
 
    print("--------------------")
@@ -81,6 +77,6 @@ if __name__ == '__main__':
    model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
    classif_exp(model_1, train_data, val_data, test_data, labeldict, "bow_bert_attention")
    
-   #model_2 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1])
-   #classif_exp(model_2, train_data, val_data, test_data, "bow_self_attention")
+   model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_2, train_data, val_data, test_data, labeldict, "bow_log_reg")
 
