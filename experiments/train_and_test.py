@@ -1,7 +1,7 @@
 import math, copy, os.path
 import torch
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from sklearn import preprocessing
@@ -100,10 +100,10 @@ def plot_training_curve(loss_history:list,
     
     plt.plot(loss_history, label="train")
     plt.plot(val_history, label="val")
-    plt.ylabel(loss_fun + " loss")
+    plt.ylabel(loss_fun)
     plt.xlabel("Validation batch")
     plt.xticks(range(0,len(val_history)))
-    plt.title(f"Training loss across epochs")
+    plt.title(f"Training loss")
     plt.legend(loc='upper right')
     plt.savefig(path)
 
@@ -120,7 +120,7 @@ def train_variant(dnn:torch.nn.Module,
                   clip_value:int,
                   my_lr:float,
                   my_momentum:float,
-                  my_loss:torch.nn.Functional,
+                  my_loss:torch.nn.Module,
                   val_size:int,
                   loss_fun:str, # name of loss function
                   epochs:int
@@ -139,6 +139,7 @@ def train_variant(dnn:torch.nn.Module,
     optimizer   = torch.optim.SGD(dnn.parameters(), lr=my_lr, momentum=my_momentum)
 
     # Hold the best model
+    best_acc         = 0
     best_loss        = np.inf   # init to infinity
     best_weights     = None
 
@@ -169,32 +170,58 @@ def train_variant(dnn:torch.nn.Module,
         dnn.eval()
         estart = 0
         ecount = 0
-        while val_size - estart > batch_size:
+
+        while ((val_size - estart) > batch_size):
             y_pred = dnn(X_val[estart:estart+batch_size])
             v_loss = my_loss(y_pred, y_val[estart:estart+batch_size])
+            v_acc = (torch.argmax(y_pred, 1) == torch.argmax(y_val[estart:estart+batch_size], 
+                                                           1)).float().mean()
             if ((i%10 == 0) & (ecount%20 == 0)):
                 loss_history.append(loss.item())
                 print(" - loss at epoch {} and test batch {} is: {:.10f}".format(i, ecount, v_loss.item()))
+                print(" - accuracy at epoch {} and test batch {} is: {:.10f}".format(i, ecount, v_acc))
                 val_history.append(v_loss.item())
-                if v_loss.item() < best_mse:
-                    best_mse = v_loss.item()
+                if v_loss.item() < best_loss:
+                    best_loss = v_loss.item()
                     best_weights = copy.deepcopy(dnn.state_dict())
+                if v_acc > best_acc:
+                    best_acc = v_acc
             estart = estart + batch_size
             ecount = ecount + 1
 
     print("--------------------")
-    print(loss_fun + "(best): %.2f" % best_loss)
-    print(loss_fun + "(best): %.2f" % np.sqrt(best_loss))
+    print("accuracy (best): %.2f" % best_acc)
+    print(loss_fun + " (best): %.2f" % best_loss)
     print("--------------------")
 
     return best_weights, dnn
 
 
 def test_variant(dnn:torch.nn.Module, 
-                 X_test:np.Array, y_test:np.Array) -> str:
+                 X_test:np.array, 
+                 y_test:np.array,
+                 labdict:dict,
+                 path:str,
+                 ) -> str:
     '''
     Measure classification performance
     '''
+
+    labd = {v:k for k,v in labdict.items()}
     
     y_pred = dnn(X_test)
-    return classification_report(y_pred, y_test)
+
+    y_pred = torch.argmax(y_pred, 1)
+    y_test = np.argmax(y_test, axis=1)
+
+    df = pd.DataFrame({"pred": y_pred.detach().numpy(), 
+                      "gold": y_test})
+    
+    df['gold'] = df.gold.astype(int).map(labd)
+    df['pred'] = df.pred.astype(int).map(labd)
+    df.to_csv(path, index=False)
+    
+    result = "--------------------\n" + classification_report(df.gold, 
+                                                              df.pred, 
+                                                              zero_division=0)
+    return result

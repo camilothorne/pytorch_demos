@@ -1,5 +1,6 @@
 import math, copy, os.path
 import torch
+from typing import Union
 
 '''
 Custom attention layers
@@ -71,7 +72,7 @@ class SelfAttention(torch.nn.Module):
         C = \sum_{t} Alpha_t * H_t
     
     '''
-    def __init__(self,input_dim):
+    def __init__(self, input_dim:int) -> None:
         '''
         Constructor
         '''
@@ -87,7 +88,7 @@ class SelfAttention(torch.nn.Module):
         for weight in self.parameters():
             weight.data.uniform_(-stdv, +stdv)      
  
-    def forward(self, input):
+    def forward(self, input:torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         '''
         Forward pass for back-propagation
         '''
@@ -101,7 +102,6 @@ class SelfAttention(torch.nn.Module):
         output = torch.nn.functional.sum(context, dim=1)
         return context, output
     
-
 '''
 Model architectures
 '''
@@ -110,19 +110,22 @@ class ModBertAttention(torch.nn.Module):
     '''
     Custom model using custom BERR-like layer
     '''
-
-    def __init__(self, input_features, return_attention=False):
+    def __init__(self, input_features, 
+                 out_features, 
+                 return_attention=False):
 
         super(ModBertAttention, self).__init__()
-        self.input_features = input_features
         self.attention = return_attention
         self.rnn = BertAttention(input_features)
-        self.output_layer = torch.nn.Linear(input_features, 1)
+        self.linear = torch.nn.Linear(input_features, out_features)
+        self.output_layer = torch.nn.Softmax(dim=-1)
 
-    def forward(self, input:torch.tensor) -> torch.tensor:
-
+    def forward(self, input:torch.tensor) -> Union[torch.tensor, 
+                                                   tuple[torch.tensor, 
+                                                         torch.tensor]]:
         res, att = self.rnn(input)
-        out = self.output_layer(res)
+        lin = self.linear(res)
+        out = self.output_layer(lin)
         if self.attention:
             return att, out
         else:
@@ -133,19 +136,22 @@ class ModSelfAttention(torch.nn.Module):
     '''
     Custom model using custom BERR-like layer
     '''
-
-    def __init__(self, input_features, return_attention=False):
+    def __init__(self, input_features, 
+                 out_features,
+                 return_attention=False):
 
         super(ModSelfAttention, self).__init__()
-        self.input_features = input_features
         self.attention = return_attention
         self.rnn = SelfAttention(input_features)
-        self.output_layer = torch.nn.Linear(input_features, 1)
+        self.linear = torch.nn.Linear(input_features, out_features)
+        self.output_layer = torch.nn.Softmax(dim=-1)
 
-    def forward(self, input:torch.tensor) -> torch.tensor:
-
+    def forward(self, input:torch.tensor) -> Union[torch.tensor, 
+                                                   tuple[torch.tensor, 
+                                                         torch.tensor]]:
         res, att = self.rnn(input)
-        out = self.output_layer(res)
+        lin = self.linear(res)
+        out = self.output_layer(lin)
         if self.attention:
             return att, out
         else:
