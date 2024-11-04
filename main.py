@@ -32,6 +32,7 @@ def classif_exp(model:torch.nn.Module,
                         clip_value=100,
                         my_lr=0.0001,
                         my_momentum=0.009,
+                        my_weight_decay=0.001,
                         my_loss=torch.nn.CrossEntropyLoss(), # we use CE loss
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function

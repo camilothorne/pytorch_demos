@@ -31,7 +31,7 @@ class BertAttention(torch.nn.Module):
         self.query = torch.nn.Linear(input_dim, input_dim)
         self.key = torch.nn.Linear(input_dim, input_dim)
         self.value = torch.nn.Linear(input_dim, input_dim)
-        self.reset_parameters()
+        #self.reset_parameters()
 
     def reset_parameters(self) -> None:
         '''
@@ -80,7 +80,7 @@ class SelfAttention(torch.nn.Module):
         '''
         super(SelfAttention,self).__init__()
         self.hidden = torch.nn.Linear(input_dim[-1], 1)
-        self.reset_parameters()
+        #self.reset_parameters()
 
     def reset_parameters(self) -> None:
         '''

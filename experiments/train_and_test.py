@@ -10,6 +10,32 @@ from torch.nn.modules.module import _addindent
 from sklearn.metrics import classification_report
 
 
+
+class CustomCE(torch.nn.Module):
+    '''
+    Custom CE loss that operates on:
+
+    - softmax layers
+    - one hot encodings of labels
+
+        CE = - 1/n [ \sum_i^n ( X_i * ln(P_i) ) ]
+
+    where X_i and P_i are 4-dimensional vectors (true labels and their 
+    probabilities) 
+
+    (Note: PyTorch CrossEntropyLoss operates on logits and single labels, 
+    somehow!)
+
+    '''
+    
+    def __init__(self):
+        super(CustomCE, self).__init__()
+
+    def forward(self, inputs, targets):
+        loss = -torch.sum (targets * torch.log(inputs))
+        return loss.mean()
+
+
 def torch_summarize(model:torch.nn.Module,
                     show_weights=True,
                     show_parameters=True) -> str:
@@ -106,6 +132,7 @@ def plot_training_curve(loss_history:list,
     plt.title(f"Training loss")
     plt.legend(loc='upper right')
     plt.savefig(path)
+    plt.close()
 
 
 def train_variant(dnn:torch.nn.Module,
@@ -120,6 +147,7 @@ def train_variant(dnn:torch.nn.Module,
                   clip_value:int,
                   my_lr:float,
                   my_momentum:float,
+                  my_weight_decay:float, # regularization for L2 loss
                   my_loss:torch.nn.Module,
                   val_size:int,
                   loss_fun:str, # name of loss function
@@ -136,7 +164,10 @@ def train_variant(dnn:torch.nn.Module,
     print(torch_summarize(dnn))
 
     # Choose optimizer and loss function (MSE)
-    optimizer   = torch.optim.SGD(dnn.parameters(), lr=my_lr, momentum=my_momentum)
+    optimizer   = torch.optim.SGD(dnn.parameters(), 
+                                  lr=my_lr, 
+                                  momentum=my_momentum, 
+                                  weight_decay=my_weight_decay)
 
     # Hold the best model
     best_acc         = 0
@@ -148,17 +179,19 @@ def train_variant(dnn:torch.nn.Module,
 
     print("--------------------")
     print(f"SGD for {epochs} epochs, with batch size {batch_size}:")
+
     for i in tqdm(range(epochs)):
         
-        # Train
+        # 1) Train
         dnn.train()
         start = 0
         count = 0
 
         while data_size - start > batch_size:
+
             optimizer.zero_grad()
             out = dnn(X_train[start:start+batch_size]) # forward pass
-            loss = my_loss(out, y_train[start:start+batch_size])
+            loss = my_loss(out, y_train[start:start+batch_size]) # training loss
             loss.backward()
             if clip_value > 0:
                 torch.nn.utils.clip_grad_norm_(dnn.parameters(), clip_value)
@@ -166,26 +199,31 @@ def train_variant(dnn:torch.nn.Module,
             start = start + batch_size
             count = count + 1
 
-        # Validate
+        # 2) Validate
         dnn.eval()
         estart = 0
         ecount = 0
 
         while ((val_size - estart) > batch_size):
+
             y_pred = dnn(X_val[estart:estart+batch_size])
-            v_loss = my_loss(y_pred, y_val[estart:estart+batch_size])
+            v_loss = my_loss(y_pred, y_val[estart:estart+batch_size]) # validation loss
             v_acc = (torch.argmax(y_pred, 1) == torch.argmax(y_val[estart:estart+batch_size], 
-                                                           1)).float().mean()
+                                                           1)).float().mean() # validation accuracy
+            
             if ((i%10 == 0) & (ecount%20 == 0)):
+                
+                # we collect the stats every now and then
                 loss_history.append(loss.item())
-                print(" - loss at epoch {} and test batch {} is: {:.10f}".format(i, ecount, v_loss.item()))
-                print(" - accuracy at epoch {} and test batch {} is: {:.10f}".format(i, ecount, v_acc))
+                print(" - val. loss at epoch {} and batch {} is: {:.10f}".format(i, ecount, v_loss.item()))
+                print(" - val. accuracy at epoch {} and batch {} is: {:.10f}".format(i, ecount, v_acc))
                 val_history.append(v_loss.item())
                 if v_loss.item() < best_loss:
                     best_loss = v_loss.item()
                     best_weights = copy.deepcopy(dnn.state_dict())
                 if v_acc > best_acc:
                     best_acc = v_acc
+            
             estart = estart + batch_size
             ecount = ecount + 1
 
