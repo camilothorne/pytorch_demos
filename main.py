@@ -9,7 +9,8 @@ def classif_exp(model:torch.nn.Module,
                 val_data:np.array,
                 test_data:np.array,
                 labdict:dict,
-                name:str) -> None:
+                name:str,
+                epochs:int) -> None:
    '''
    Train and test document classifier 
    '''
@@ -33,10 +34,10 @@ def classif_exp(model:torch.nn.Module,
                         my_lr=0.0001,
                         my_momentum=0.009,
                         my_weight_decay=0.001,
-                        my_loss=torch.nn.CrossEntropyLoss(), # we use CE loss
+                        my_loss=CustomCE(), # we use CE loss
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
-                        epochs=30
+                        epochs=epochs,
                  )
 
    plot_training_curve(loss_history=loss_history, 
@@ -76,8 +77,20 @@ if __name__ == '__main__':
    '''
 
    model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_1, train_data, val_data, test_data, labeldict, "bow_bert_attention")
+   classif_exp(model_1, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="bow_bert_attention", 
+               epochs=50)
    
    model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_2, train_data, val_data, test_data, labeldict, "bow_log_reg")
+   classif_exp(model_2, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="bow_log_reg", 
+               epochs=30)
 
