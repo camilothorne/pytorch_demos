@@ -47,10 +47,12 @@ def classif_exp(model:torch.nn.Module,
    print(f"Performance on test set")
    print("--------------------")
    print(test_variant(dnn=trained_model, 
-                      X_test=torch.tensor(test_data[0].todense(), dtype=torch.float32), 
-                      y_test=np.asarray(test_data[1].todense()),
-                      labdict=labdict,
-                      path=f"./plots_and_stats/preds_{name}.csv"))
+               X_test=torch.tensor(test_data[0].todense(), dtype=torch.float32), 
+               y_test=np.asarray(test_data[1].todense()),
+               labdict=labdict,
+               path=f"./plots_and_stats/preds_{name}.csv",
+               path_stats=f"./plots_and_stats/scores_{name}.csv")
+         )
 
 
 if __name__ == '__main__':
@@ -76,23 +78,23 @@ if __name__ == '__main__':
    Run experiments
    '''
 
-   # model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
-   # classif_exp(model_1, 
-   #             train_data, 
-   #             val_data, 
-   #             test_data, 
-   #             labeldict, 
-   #             name="bow_bert_attention", 
-   #             epochs=50)
+   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_1, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="bow_bert_attention", 
+               epochs=50)
    
-   # model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
-   # classif_exp(model_2, 
-   #             train_data, 
-   #             val_data, 
-   #             test_data, 
-   #             labeldict, 
-   #             name="bow_log_reg", 
-   #             epochs=30)
+   model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_2, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="bow_log_reg", 
+               epochs=30)
 
    model_3 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1])
    classif_exp(model_3, 

@@ -128,7 +128,8 @@ def plot_training_curve(loss_history:list,
     plt.plot(val_history, label="val")
     plt.ylabel(loss_fun)
     plt.xlabel("Validation batch")
-    plt.xticks(range(0,len(val_history)))
+    plt.xticks(range(0,len(val_history)), rotation='45', fontsize=8)
+    plt.margins(0.2)
     plt.title(f"Training loss")
     plt.legend(loc='upper right')
     plt.savefig(path)
@@ -240,6 +241,7 @@ def test_variant(dnn:torch.nn.Module,
                  y_test:np.array,
                  labdict:dict,
                  path:str,
+                 path_stats:str,
                  ) -> str:
     '''
     Measure classification performance
@@ -254,7 +256,6 @@ def test_variant(dnn:torch.nn.Module,
 
     df = pd.DataFrame({"pred": y_pred.detach().numpy(), 
                       "gold": y_test})
-    
     df['gold'] = df.gold.astype(int).map(labd)
     df['pred'] = df.pred.astype(int).map(labd)
     df.to_csv(path, index=False)
@@ -262,4 +263,11 @@ def test_variant(dnn:torch.nn.Module,
     result = classification_report(df.gold, 
                                    df.pred, 
                                    zero_division=0)
+    result_dict = classification_report(df.gold, 
+                                   df.pred, 
+                                   zero_division=0,
+                                   output_dict=True)
+    df_res = df = pd.DataFrame(result_dict).transpose()
+    df_res.to_csv(path_stats)
+
     return result
