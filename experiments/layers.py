@@ -69,9 +69,9 @@ class SelfAttention(torch.nn.Module):
     
     Works in principle for RNN layers. The definitions are as follows:
 
-        E_t = a(H_t)
+        E_t = H_t * H_t^T
         Alpha_t = softmax(E_t)
-        C = \sum_{t} Alpha_t * H_t
+        C = \sum_t Alpha_t * H_t
     
     '''
     def __init__(self, input_dim:int) -> None:
@@ -79,7 +79,7 @@ class SelfAttention(torch.nn.Module):
         Constructor
         '''
         super(SelfAttention,self).__init__()
-        self.hidden = torch.nn.Linear(input_dim[-1], 1)
+        self.hidden = torch.nn.Linear(input_dim, input_dim)
         #self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -95,14 +95,17 @@ class SelfAttention(torch.nn.Module):
         Forward pass for back-propagation
         '''
         # Alignment scores. Pass them through tanh function
-        e = torch.tanh(torch.dot(input, self.self.hidden)) 
+        c = self.hidden(input)
+        e = torch.matmul(input.transpose(0,1), c)
+
         # Compute the weights
-        alpha = torch.softmax(e.squeeze(-1))
-        alpha = alpha.unsqueeze(-1)
+        alpha = torch.nn.functional.softmax(e, dim=1)
+        
         # Compute the context vector
-        context = input * alpha
-        output = torch.nn.functional.sum(context, dim=1)
-        return context, output
+        context = torch.matmul(input, alpha)
+        output = input * torch.sum(context, dim=1)[:,None]
+
+        return output, context
 
 
 '''

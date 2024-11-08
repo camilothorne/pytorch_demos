@@ -1,6 +1,6 @@
 from experiments.train_and_test import *
 from experiments.bow_enc import *
-from experiments.layers import ModBertAttention, ModLogReg
+from experiments.layers import ModBertAttention, ModLogReg, ModSelfAttention
 import torch
 
 
@@ -76,21 +76,29 @@ if __name__ == '__main__':
    Run experiments
    '''
 
-   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_1, 
-               train_data, 
-               val_data, 
-               test_data, 
-               labeldict, 
-               name="bow_bert_attention", 
-               epochs=50)
+   # model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
+   # classif_exp(model_1, 
+   #             train_data, 
+   #             val_data, 
+   #             test_data, 
+   #             labeldict, 
+   #             name="bow_bert_attention", 
+   #             epochs=50)
    
-   model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_2, 
+   # model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
+   # classif_exp(model_2, 
+   #             train_data, 
+   #             val_data, 
+   #             test_data, 
+   #             labeldict, 
+   #             name="bow_log_reg", 
+   #             epochs=30)
+
+   model_3 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_3, 
                train_data, 
                val_data, 
                test_data, 
                labeldict, 
-               name="bow_log_reg", 
-               epochs=30)
-
+               name="bow_self_attention", 
+               epochs=10)
