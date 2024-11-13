@@ -1,5 +1,6 @@
 from experiments.train_and_test import *
 from experiments.bow_enc import *
+from experiments.one_hot_enc import *
 from experiments.layers import ModBertAttention, ModLogReg, ModSelfAttention
 import torch
 
@@ -61,8 +62,9 @@ if __name__ == '__main__':
    Pre-process data using BOW encoder
    '''
 
+   '''
    print("--------------------")
-   print(f"Dataset")
+   print(f"Dataset (BOW encoding)")
    print("--------------------")
    bow_encode = BoWEconde(path="./data/ecommerceDataset.csv", 
                           sep=',')
@@ -73,11 +75,13 @@ if __name__ == '__main__':
    print('Labels:', labeldict)
    train_data, test_data, val_data = bow_encode.split_data()
    print('Dimensions of training data: (data and labels):', train_data[0].shape, train_data[1].shape)
-
+   '''
+   
    '''
    Run experiments
    '''
 
+   '''
    model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
    classif_exp(model_1, 
                train_data, 
@@ -104,3 +108,56 @@ if __name__ == '__main__':
                labeldict, 
                name="bow_self_attention", 
                epochs=10)
+   '''
+
+   '''
+   Pre-process data using one hot encoder
+   '''
+
+   print("--------------------")
+   print(f"Dataset (one hot encoding)")
+   print("--------------------")
+   one_encode = OneHEncode(path="./data/ecommerceDataset.csv", 
+                          sep=',')
+
+   print(one_encode.get_raw_data().head())
+   print("--------------------")
+   labeldict = one_encode.get_label_dict()
+   print('Labels:', labeldict)
+   train_data, test_data, val_data = one_encode.split_data()
+   print('Dimensions of training data: (data and labels):', train_data[0].shape, train_data[1].shape)
+
+   '''
+   Run experiments
+   '''
+
+   '''
+
+   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_1, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="onehot_bert_attention", 
+               epochs=50)
+   
+   model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_2, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="onehot_log_reg", 
+               epochs=30)
+
+   model_3 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1])
+   classif_exp(model_3, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="onehot_self_attention", 
+               epochs=10)
+
+   '''

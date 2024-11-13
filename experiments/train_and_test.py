@@ -128,7 +128,7 @@ def plot_training_curve(loss_history:list,
     plt.plot(val_history, label="val")
     plt.ylabel(loss_fun)
     plt.xlabel("Validation batch")
-    plt.xticks(range(0,len(val_history)), rotation='45', fontsize=8)
+    plt.xticks(range(0,len(val_history)), rotation=45, fontsize=8)
     plt.margins(0.2)
     plt.title(f"Training loss")
     plt.legend(loc='upper right')
