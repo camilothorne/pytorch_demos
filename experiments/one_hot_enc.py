@@ -7,7 +7,8 @@ import math
 
 class OneHEncode:
     '''
-    Vectorize a dataset of texts of arbitrary length using BOW/TFIDF features
+    Vectorize a dataset of texts of length T into matrixes of one hot vectors
+    of dimensions T x V (size of vocabulary)
     and generate train/val/test splits
     '''
 
@@ -36,10 +37,10 @@ class OneHEncode:
     def _onehotvectorize(self, corpus_df, n_feats):
         '''
         One hot encoding - transforms each sentence into a
-        matrix:
+        matrix, given a vocabulary of size V:
 
-        - for each input of length N, create a N x M table
-        - create a K x N x M table for the K inputs
+        - for each input of length T, create a T x V array/matrix
+        - create a N x T x V array/tensor for the N inputs
         - results are saved in class-internal variables
 
         '''
@@ -62,18 +63,16 @@ class OneHEncode:
                     self._unigrams[tok] = 1
                 else:
                     self._unigrams[tok] =+ 1
+        # We truncate vocabulary to the top `n_feats` most common unigrams
         if n_feats is not None:
             usorted = dict(sorted(self._unigrams.items(), key=lambda x: x[1]))
-
-            #print(usorted.keys())
-
             self._input_tokens = list(usorted.keys())[0:n_feats]
         else:
             self._input_tokens = list(self._unigrams.keys())
 
     def _set_input_toks(self):
         '''
-        Set internal variables
+        Set internal variables:
     
         - lists of input tokens
         - max number of tokens
@@ -87,24 +86,19 @@ class OneHEncode:
         self._max_encoder_seq_length = math.floor(np.mean([len(txt) for txt in self._input_texts]))
         self._input_token_index  = dict(
             [(tok, j) for j, tok in enumerate(self._input_tokens)])
-        
-        #print(self._input_texts[0])
-        #print(len(self._input_texts[0]))
-        #print(self._max_encoder_seq_length)
 
     def _build_embeddings(self):
         '''
         Create one-hot char embeddings (private method)
         '''
-        # we work with one-hot token vectors
+        # We work with one-hot token vectors
         encoder_input_data  = np.zeros((len(self._input_texts), 
                                         self._max_encoder_seq_length, 
                                         self._num_encoder_tokens), dtype='float32')
-        # loop over data
+        # Loop over texts
         for i, input_text in enumerate(self._input_texts):
-            # loop
+            # Loop over tokens
             for t, tok in enumerate(input_text):
-                #print(t, tok, len(input_text))
                 if (tok in self._input_token_index) and (t < self._max_encoder_seq_length):
                     encoder_input_data[i, t, self._input_token_index[tok]] = 1.
         return encoder_input_data
@@ -141,14 +135,11 @@ class OneHEncode:
         '''
         We use 20% for test, 10% for validation and 70% for training
         '''
-
         X, X_te, y, y_te = train_test_split(self._vec_data,
                                             self._labels,
                                             test_size=0.2,
                                             random_state=42)
-        
         X_tr, X_va, y_tr, y_va = train_test_split(X,y,
                                             test_size=0.1,
                                             random_state=42)
-        
         return (X_tr, y_tr), (X_te, y_te), (X_va, y_va)
