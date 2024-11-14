@@ -1,4 +1,4 @@
-# PyTorch Classification Excercises (using Attention)
+# PyTorch Classification Excercises
 
 PyTorch demos and exercises written in pure Python. In these exrcises
 we learn different text classifiers using and not using attention, and that
@@ -19,3 +19,11 @@ These experiments require a Python 3.10.x environment, and run on CPU. In order 
 ```bash
 python main.py
 ```
+
+### Implementations
+
+- Classical self-attention layer (and model).
+- BERT attention layer (and model).
+- Bag-of-words embedding of documents.
+- One-hot embeddings of documents.
+- Convolutional neural network for the one-hot embeddings.
