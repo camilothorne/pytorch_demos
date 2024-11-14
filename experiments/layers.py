@@ -1,4 +1,4 @@
-import math, copy, os.path
+import math
 import torch
 from typing import Union
 
@@ -180,3 +180,53 @@ class ModSelfAttention(torch.nn.Module):
             return att, out
         else:
             return out 
+        
+    
+'''
+Convolutions for one-hot matrixes
+'''
+
+
+class TextConv1D(torch.nn.Module):
+    '''
+    Custom ConvNet for text classification of sentence one-hot encodings
+
+        Conv1d(in_channels, out_channels, kernel_size, 
+                stride=1, padding=0, dilation=1, groups=1, 
+                bias=True, padding_mode='zeros', device=None, 
+                dtype=None)
+
+    '''
+    def __init__(self, input_features, out_features):
+        '''
+        This model takes in two basic parameters
+
+        - input_features:   the word embedding dimension
+        - out_features:     the number of classes 
+
+        '''
+        super(TextConv1D, self).__init__()
+        self.layer1 = torch.nn.Sequential(
+                torch.nn.Conv1d(input_features[1], out_channels=10, kernel_size=3),
+                torch.nn.ReLU(),
+                torch.nn.MaxPool1d(10))
+        self.layer2 = torch.nn.Flatten()
+        self.layer3 = torch.nn.Sequential(
+                torch.nn.Linear(int(math.floor(input_features[2]/10)*10),100),
+                torch.nn.ReLU())
+        self.layer4 = torch.nn.Sequential(
+                torch.nn.Linear(100,out_features),
+                torch.nn.Softmax(dim=-1))
+
+    def forward(self, x):
+
+        #print('input', x.shape)
+        out = self.layer1(x)
+        #print('cnn layer', out.shape)
+        out = self.layer2(out)
+        #print('flatten layer', out.shape)
+        out = self.layer3(out)
+        #print('linear layer', out.shape)
+        out = self.layer4(out)
+        #print('softmax layer', out.shape)
+        return out

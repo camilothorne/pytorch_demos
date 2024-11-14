@@ -93,14 +93,14 @@ class OneHEncode:
         '''
         # We work with one-hot token vectors
         encoder_input_data  = np.zeros((len(self._input_texts), 
-                                        self._max_encoder_seq_length, 
-                                        self._num_encoder_tokens), dtype='float32')
+                                        self._num_encoder_tokens,
+                                        self._max_encoder_seq_length), dtype='float32')
         # Loop over texts
         for i, input_text in enumerate(self._input_texts):
             # Loop over tokens
             for t, tok in enumerate(input_text):
                 if (tok in self._input_token_index) and (t < self._max_encoder_seq_length):
-                    encoder_input_data[i, t, self._input_token_index[tok]] = 1.
+                    encoder_input_data[i, self._input_token_index[tok], t] = 1.
         return encoder_input_data
 
     def _define_labels(self):

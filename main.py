@@ -1,8 +1,8 @@
 from experiments.train_and_test import *
 from experiments.bow_enc import *
 from experiments.one_hot_enc import *
-from experiments.layers import ModBertAttention, ModLogReg, ModSelfAttention
-import torch
+from experiments.layers import ModBertAttention, ModLogReg, ModSelfAttention, TextConv1D
+import torch, scipy
 
 
 def classif_exp(model:torch.nn.Module,
@@ -22,11 +22,47 @@ def classif_exp(model:torch.nn.Module,
    val_history = []
    loss_history =[]
 
+   # Train data
+   if scipy.sparse.issparse(train_data[0]):
+      trainn_data = train_data[0].todense()
+   else:
+      trainn_data = train_data[0]
+
+   # Val data
+   if scipy.sparse.issparse(val_data[0]):
+      vall_data = val_data[0].todense()
+   else:
+      vall_data = val_data[0]
+   
+   # Train labels
+   if scipy.sparse.issparse(train_data[1]):
+      trainn_labels = train_data[1].todense()
+   else:
+      trainn_labels = train_data[1]
+   
+   # Val labels
+   if scipy.sparse.issparse(val_data[1]):
+      vall_labels = val_data[1].todense()
+   else:
+      vall_labels = val_data[1]
+
+   # Test data
+   if scipy.sparse.issparse(test_data[0]):
+      testt_data = test_data[0].todense()
+   else:
+      testt_data = test_data[0]
+   
+   # Test labels
+   if scipy.sparse.issparse(test_data[1]):
+      testt_labels = test_data[1].todense()
+   else:
+      testt_labels = test_data[1]
+
    _, trained_model = train_variant(model, 
-                        X_train=torch.tensor(train_data[0].todense(), dtype=torch.float32),
-                        X_val=torch.tensor(val_data[0].todense(), dtype=torch.float32),
-                        y_train=torch.tensor(train_data[1].todense(), dtype=torch.float32),
-                        y_val=torch.tensor(val_data[1].todense(), dtype=torch.float32),
+                        X_train=torch.tensor(trainn_data, dtype=torch.float32),
+                        X_val=torch.tensor(vall_data, dtype=torch.float32),
+                        y_train=torch.tensor(trainn_labels, dtype=torch.float32),
+                        y_val=torch.tensor(vall_labels, dtype=torch.float32),
                         val_history=val_history,
                         loss_history=loss_history,
                         data_size=train_data[0].shape[0],
@@ -48,8 +84,8 @@ def classif_exp(model:torch.nn.Module,
    print(f"Performance on test set")
    print("--------------------")
    print(test_variant(dnn=trained_model, 
-               X_test=torch.tensor(test_data[0].todense(), dtype=torch.float32), 
-               y_test=np.asarray(test_data[1].todense()),
+               X_test=torch.tensor(testt_data, dtype=torch.float32), 
+               y_test=np.asarray(testt_labels),
                labdict=labdict,
                path=f"./plots_and_stats/preds_{name}.csv",
                path_stats=f"./plots_and_stats/scores_{name}.csv")
@@ -131,33 +167,11 @@ if __name__ == '__main__':
    Run experiments
    '''
 
-   '''
-
-   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_1, 
+   model_o = TextConv1D(train_data[0].shape, train_data[1].shape[1])
+   classif_exp(model_o, 
                train_data, 
                val_data, 
                test_data, 
                labeldict, 
-               name="onehot_bert_attention", 
-               epochs=50)
-   
-   model_2 = ModLogReg(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_2, 
-               train_data, 
-               val_data, 
-               test_data, 
-               labeldict, 
-               name="onehot_log_reg", 
+               name="onehot_conv1d", 
                epochs=30)
-
-   model_3 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1])
-   classif_exp(model_3, 
-               train_data, 
-               val_data, 
-               test_data, 
-               labeldict, 
-               name="onehot_self_attention", 
-               epochs=10)
-
-   '''
