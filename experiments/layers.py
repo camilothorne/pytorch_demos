@@ -106,6 +106,34 @@ class SelfAttention(torch.nn.Module):
         output = input * torch.sum(context, dim=1)[:,None]
 
         return output, context
+    
+
+class SeqAttention(torch.nn.Module):
+    '''
+    Attention layer for sequential inputs (biLSTMs, RNNs, etc.), derived from
+
+        https://tinyurl.com/yc6w64w8
+
+    '''    
+    def __init__(self, hidden_dim):
+        '''
+        Constructor
+        '''
+        super(SeqAttention, self).__init__()
+        self.attn = torch.nn.Linear(hidden_dim, 1, bias=False)
+
+    def forward(self, lstm_output):
+        '''
+        Forward pass
+        '''
+        # lstm_output = [batch size, seq_len, hidden_dim]
+        attention_scores = self.attn(lstm_output)
+        
+        # attention_scores = [batch size, seq_len, 1]
+        attention_scores = attention_scores.squeeze(2)
+        
+        # attention_scores = [batch size, seq_len]
+        return torch.functional.softmax(attention_scores, dim=1)
 
 
 '''
@@ -220,13 +248,92 @@ class TextConv1D(torch.nn.Module):
 
     def forward(self, x):
 
-        #print('input', x.shape)
         out = self.layer1(x)
-        #print('cnn layer', out.shape)
         out = self.layer2(out)
-        #print('flatten layer', out.shape)
         out = self.layer3(out)
-        #print('linear layer', out.shape)
         out = self.layer4(out)
-        #print('softmax layer', out.shape)
         return out
+    
+
+class TextBiLSTM(torch.nn.Module):
+    '''
+    Custom biLSTM model for one-hot encoding / sequence data, based on
+    this class
+
+        LSTM(input_size, hidden_size, num_layers=1, bias=True, 
+            batch_first=False, dropout=0.0, bidirectional=False, 
+            proj_size=0, device=None, dtype=None)
+    
+    '''
+    def __init__(self, in_features, 
+                 latent_dim, out_features, 
+                 return_state=False):
+        '''
+        Key parameters
+
+        - in_features     input features (=< word dimensions)
+        - out_features:   ouput features
+        - latent_dim:     hidden state dimenstion
+
+        '''
+        super(TextBiLSTM, self).__init__()
+        self.ret_state = return_state
+        self.rnn = torch.nn.LSTM(input_size=in_features, 
+                                     hidden_size=latent_dim,
+                                     bidirectional=True)
+        self.linear = torch.nn.Linear(latent_dim, out_features)
+        self.relu = torch.nn.ReLu()
+        self.output_layer = torch.nn.Softmax(dim=-1)
+        
+    def forward(self, x):
+
+        out, h_s, c_s   = self.rnn(x)
+        out             = self.relu(out)
+        out             = self.linear(out)
+        out             = self.output_layer(out)
+        if self.ret_state:
+            return h_s, c_s, out
+        else:
+            return out
+        
+
+class TextBiLSTMAttention(torch.nn.Module):
+    '''
+    Custom biLSTM w. attention model for 
+    one-hot encoding / sequence data, based on this class
+
+        LSTM(input_size, hidden_size, num_layers=1, bias=True, 
+            batch_first=False, dropout=0.0, bidirectional=False, 
+            proj_size=0, device=None, dtype=None)
+    
+    '''
+    def __init__(self, in_features, 
+                 latent_dim, out_features, 
+                 return_state=False):
+        '''
+        Key parameters
+
+        - in_features     input features (=< word dimensions)
+        - out_features:   ouput features
+        - latent_dim:     hidden state dimenstion
+
+        '''
+        super(TextBiLSTMAttention, self).__init__()
+        self.ret_state = return_state
+        self.rnn = torch.nn.LSTM(input_size=in_features, 
+                                     hidden_size=latent_dim,
+                                     bidirectional=True)
+        self.linear = torch.nn.Linear(latent_dim * 2, out_features)
+        self.relu = torch.nn.ReLu()
+        self.output_layer = torch.nn.Softmax(dim=-1)
+        
+    def forward(self, x):
+
+        out, h_s, c_s   = self.rnn(x)
+        out             = self.relu(out)
+        out             = self.linear(out)
+        out             = self.output_layer(out)
+        if self.ret_state:
+            return h_s, c_s, out
+        else:
+            return out
