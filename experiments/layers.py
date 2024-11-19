@@ -67,11 +67,7 @@ class SelfAttention(torch.nn.Module):
         
         https://arxiv.org/pdf/1512.08756.pdf
     
-    Works in principle for RNN layers. The definitions are as follows:
-
-        E_t = H_t * H_t^T
-        Alpha_t = softmax(E_t)
-        C = \sum_t Alpha_t * H_t
+    Adapted from attention for RNNs as described above.
     
     '''
     def __init__(self, input_dim:int) -> None:
@@ -94,7 +90,7 @@ class SelfAttention(torch.nn.Module):
         '''
         Forward pass for back-propagation
         '''
-        # Alignment scores. Pass them through tanh function
+        # Alignment scores
         c = self.hidden(input)
         e = torch.matmul(input.transpose(0,1), c)
 
@@ -112,32 +108,46 @@ class SeqAttention(torch.nn.Module):
     '''
     Attention layer for sequential inputs (biLSTMs, RNNs, etc.), derived from
 
-        https://tinyurl.com/yc6w64w8
+        - https://arxiv.org/pdf/1805.12307 (paper)
+        - https://github.com/gentaiscool/lstm-attention (GitHub)
+
+    Works in principle for RNN units H_t. The definitions are as follows:
+
+        E_t     = a(H_t) \cdot a(H_t)^T
+        Alpha_t = softmax(E_t)
+        C       = \sum_t Alpha_t \cdot H_t      
 
     '''    
-    def __init__(self, hidden_dim):
+    def __init__(self, input_dim:int) -> None:
         '''
         Constructor
         '''
         super(SeqAttention, self).__init__()
-        self.attn = torch.nn.Linear(hidden_dim, 1, bias=False)
+        self.hidden = torch.nn.Linear(input_dim, input_dim)
 
-    def forward(self, lstm_output):
+    def forward(self, input:torch.Tensor) -> torch.Tensor:
         '''
         Forward pass
         '''
-        # lstm_output = [batch size, seq_len, hidden_dim]
-        attention_scores = self.attn(lstm_output)
-        
-        # attention_scores = [batch size, seq_len, 1]
-        attention_scores = attention_scores.squeeze(2)
-        
-        # attention_scores = [batch size, seq_len]
-        return torch.functional.softmax(attention_scores, dim=1)
+        # Alignment scores
+        hid = self.hidden(input)
+
+        e = torch.matmul(hid.transpose(1,2), hid)
+
+        # Compute the weights
+        alpha = torch.nn.functional.softmax(e, dim=1)
+        #print('alpha', alpha.shape)
+
+        # Compute context
+        context = torch.sum(
+                        torch.matmul(alpha, hid.transpose(1,2)), 
+                        dim=1)
+
+        return context
 
 
 '''
-Model architectures
+Self attention models for BOE encoded data (with linear baseline)
 '''
 
 
@@ -211,7 +221,7 @@ class ModSelfAttention(torch.nn.Module):
         
     
 '''
-Convolutions for one-hot matrixes
+CNN classification models for one-hot encoded data
 '''
 
 
@@ -253,63 +263,12 @@ class TextConv1D(torch.nn.Module):
         out = self.layer3(out)
         out = self.layer4(out)
         return out
-    
 
-class TextBiLSTM(torch.nn.Module):
-    '''
-    Custom biLSTM model for one-hot encoding / sequence data, based on
-    this class
 
-        LSTM(input_size, hidden_size, num_layers=1, bias=True, 
-            batch_first=False, dropout=0.0, bidirectional=False, 
-            proj_size=0, device=None, dtype=None)
-    
-    '''
-    def __init__(self, in_features, 
-                 latent_dim, out_features, 
-                 return_state=False):
-        '''
-        Key parameters
+'''
+Self attention classification model for one-hot encoded (sequential) data 
+'''
 
-        - in_features     input features (=< word dimensions)
-        - out_features:   ouput features
-        - latent_dim:     hidden state dimenstion
-
-        '''
-        super(TextBiLSTM, self).__init__()
-        self.ret_state = return_state
-        self.rnn = torch.nn.LSTM(input_size=in_features, 
-                                     hidden_size=latent_dim,
-                                     bidirectional=True)
-        self.linear = torch.nn.Linear(latent_dim*2, out_features)
-        self.relu = torch.nn.ReLU()
-        self.output_layer = torch.nn.Softmax(dim=-1)
-        
-    def forward(self, x):
-
-        print(x.shape)
-
-        out, (h_s, c_s) = self.rnn(x)
-
-        print(out.shape)
-
-        out             = self.relu(out)
-
-        print(out.shape)
-
-        out             = self.linear(out)
-        
-        print(out.shape)
-
-        out             = self.output_layer(out)
-        
-        print(out.shape)
-        
-        if self.ret_state:
-            return h_s, c_s, out
-        else:
-            return out
-        
 
 class TextBiLSTMAttention(torch.nn.Module):
     '''
@@ -327,33 +286,34 @@ class TextBiLSTMAttention(torch.nn.Module):
         '''
         Key parameters
 
-        - in_features     input features (=< word dimensions)
+        - in_features     (word_dim, length) tuple
         - out_features:   ouput features
         - latent_dim:     hidden state dimenstion
 
         '''
         super(TextBiLSTMAttention, self).__init__()
         self.ret_state = return_state
-        self.rnn = torch.nn.LSTM(input_size=in_features, 
+        self.rnn = torch.nn.LSTM(input_size=in_features[2], 
                                      hidden_size=latent_dim,
                                      bidirectional=True)
         self.attention = SeqAttention(latent_dim * 2)
-        self.linear = torch.nn.Linear(latent_dim * 2, out_features)
-        self.relu = torch.nn.ReLU()
+        self.linear = torch.nn.Linear(in_features[1], out_features)
         self.output_layer = torch.nn.Softmax(dim=-1)
         
     def forward(self, x):
 
-        lstm_out, (h_s, c_s) = self.rnn(x)
-        lstm_out             = self.relu(lstm_out)
-        lstm_out             = self.linear(lstm_out)
-        att_weights          = self.attention(lstm_out)
-        att_weights          = att_weights.unsqueeze(2)
-        weighted             = lstm_out * att_weights
-        weighted_sum         = weighted.sum(dim=1)
-        out                  = self.linear(weighted_sum)
-        out                  = self.output_layer(out)
-        
+        lstm_out, (h_s, c_s)    = self.rnn(x)
+        #print('input', lstm_out.shape)
+
+        out                     = self.attention(lstm_out)
+        #print('context', out.shape)
+
+        out                     = self.linear(out)
+        #print('linear', out.shape)
+
+        out                     = self.output_layer(out)
+        #print('output', out.shape)
+
         if self.ret_state:
             return h_s, c_s, out
         else:

@@ -1,7 +1,9 @@
 from experiments.train_and_test import *
 from experiments.bow_enc import *
 from experiments.one_hot_enc import *
-from experiments.layers import ModBertAttention, ModLogReg, ModSelfAttention, TextConv1D
+from experiments.layers import ModBertAttention, ModLogReg, \
+                               ModSelfAttention, TextConv1D, \
+                               TextBiLSTMAttention
 import torch, scipy
 
 
@@ -167,6 +169,7 @@ if __name__ == '__main__':
    Run experiments
    '''
 
+   '''
    model_o = TextConv1D(train_data[0].shape, train_data[1].shape[1])
    classif_exp(model_o, 
                train_data, 
@@ -174,4 +177,16 @@ if __name__ == '__main__':
                test_data, 
                labeldict, 
                name="onehot_conv1d", 
+               epochs=30)
+   '''
+   
+   model_bl_att = TextBiLSTMAttention(in_features=train_data[0].shape, 
+                                      latent_dim=32, 
+                                      out_features=train_data[1].shape[1])
+   classif_exp(model_bl_att, 
+               train_data, 
+               val_data, 
+               test_data, 
+               labeldict, 
+               name="onehot_blistm_att", 
                epochs=30)
