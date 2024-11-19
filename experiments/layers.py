@@ -186,7 +186,7 @@ class ModBertAttention(torch.nn.Module):
 
 class ModSelfAttention(torch.nn.Module):
     '''
-    Custom model using custom BERR-like layer
+    Custom model using custom BERT-like layer
     '''
     def __init__(self, input_features, 
                  out_features,
@@ -281,16 +281,30 @@ class TextBiLSTM(torch.nn.Module):
         self.rnn = torch.nn.LSTM(input_size=in_features, 
                                      hidden_size=latent_dim,
                                      bidirectional=True)
-        self.linear = torch.nn.Linear(latent_dim, out_features)
-        self.relu = torch.nn.ReLu()
+        self.linear = torch.nn.Linear(latent_dim*2, out_features)
+        self.relu = torch.nn.ReLU()
         self.output_layer = torch.nn.Softmax(dim=-1)
         
     def forward(self, x):
 
-        out, h_s, c_s   = self.rnn(x)
+        print(x.shape)
+
+        out, (h_s, c_s) = self.rnn(x)
+
+        print(out.shape)
+
         out             = self.relu(out)
+
+        print(out.shape)
+
         out             = self.linear(out)
+        
+        print(out.shape)
+
         out             = self.output_layer(out)
+        
+        print(out.shape)
+        
         if self.ret_state:
             return h_s, c_s, out
         else:
@@ -323,16 +337,23 @@ class TextBiLSTMAttention(torch.nn.Module):
         self.rnn = torch.nn.LSTM(input_size=in_features, 
                                      hidden_size=latent_dim,
                                      bidirectional=True)
+        self.attention = SeqAttention(latent_dim * 2)
         self.linear = torch.nn.Linear(latent_dim * 2, out_features)
-        self.relu = torch.nn.ReLu()
+        self.relu = torch.nn.ReLU()
         self.output_layer = torch.nn.Softmax(dim=-1)
         
     def forward(self, x):
 
-        out, h_s, c_s   = self.rnn(x)
-        out             = self.relu(out)
-        out             = self.linear(out)
-        out             = self.output_layer(out)
+        lstm_out, (h_s, c_s) = self.rnn(x)
+        lstm_out             = self.relu(lstm_out)
+        lstm_out             = self.linear(lstm_out)
+        att_weights          = self.attention(lstm_out)
+        att_weights          = att_weights.unsqueeze(2)
+        weighted             = lstm_out * att_weights
+        weighted_sum         = weighted.sum(dim=1)
+        out                  = self.linear(weighted_sum)
+        out                  = self.output_layer(out)
+        
         if self.ret_state:
             return h_s, c_s, out
         else:
