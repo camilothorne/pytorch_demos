@@ -302,7 +302,63 @@ class TextBiLSTMAttention(torch.nn.Module):
         
     def forward(self, x):
 
-        lstm_out, (h_s, c_s)    = self.rnn(x)
+        lstm_out, (h_s, c_s)    = self.rnn(x) # (batch_size, sequence_length, embedding_dim)
+        #print('input', lstm_out.shape)
+
+        out                     = self.attention(lstm_out)
+        #print('context', out.shape)
+
+        out                     = self.linear(out)
+        #print('linear', out.shape)
+
+        out                     = self.output_layer(out)
+        #print('output', out.shape)
+
+        if self.ret_state:
+            return h_s, c_s, out
+        else:
+            return out
+        
+class TextLSTMAttention(torch.nn.Module):
+    '''
+    Custom biLSTM w. attention model for 
+    one-hot encoding / sequence data, based on this class
+
+        LSTM(input_size, hidden_size, num_layers=1, bias=True, 
+            batch_first=False, dropout=0.0, bidirectional=False, 
+            proj_size=0, device=None, dtype=None)
+    
+    '''
+    def __init__(self, in_features, 
+                 latent_dim, out_features, 
+                 return_state=False):
+        '''
+        Key parameters
+
+        - in_features     (word_dim, length) tuple
+        - out_features:   ouput features
+        - latent_dim:     hidden state dimenstion
+
+        '''
+        super(TextBiLSTMAttention, self).__init__()
+        self.ret_state = return_state
+        self.rnn = torch.nn.LSTM(input_size=in_features[1], 
+                                 emb_size=in_features[2],
+                                 batch_first=True,
+                                 num_layers=1, 
+                                 hidden_size=latent_dim)
+        # if num_heads=1, we get BERT self attention
+        self.attention = torch.nn.MultiheadAttention(embed_dim=latent_dim, 
+                                                     num_heads=1, 
+                                                     batch_first=True,
+                                                     dropout=0.1)
+        self.linear = torch.nn.Linear(in_features[1], 
+                                      out_features)
+        self.output_layer = torch.nn.Softmax(dim=-1)
+        
+    def forward(self, x, h, s):
+
+        lstm_out, (h_s, c_s)    = self.rnn(x, h, s) # (batch_size, embedding_dim, seq_length)
         #print('input', lstm_out.shape)
 
         out                     = self.attention(lstm_out)

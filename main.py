@@ -60,11 +60,23 @@ def classif_exp(model:torch.nn.Module,
    else:
       testt_labels = test_data[1]
 
+   # Use GPU for acceleration if avilable
+   if torch.backends.mps.is_available():
+      device_name = 'mps'
+   elif torch.cuda.is_available():
+      device_name = 'cuda'
+   else:
+      device_name = 'cpu'
+
+   device = torch.device(device_name)
+   model.to(memory_format=torch.channels_last)
+   model.to(device)
+
    _, trained_model = train_variant(model, 
-                        X_train=torch.tensor(trainn_data, dtype=torch.float32),
-                        X_val=torch.tensor(vall_data, dtype=torch.float32),
-                        y_train=torch.tensor(trainn_labels, dtype=torch.float32),
-                        y_val=torch.tensor(vall_labels, dtype=torch.float32),
+                        X_train=torch.tensor(trainn_data, dtype=torch.float32).to(device),
+                        X_val=torch.tensor(vall_data, dtype=torch.float32).to(device),
+                        y_train=torch.tensor(trainn_labels, dtype=torch.float32).to(device),
+                        y_val=torch.tensor(vall_labels, dtype=torch.float32).to(device),
                         val_history=val_history,
                         loss_history=loss_history,
                         data_size=train_data[0].shape[0],
@@ -86,11 +98,13 @@ def classif_exp(model:torch.nn.Module,
    print(f"Performance on test set")
    print("--------------------")
    print(test_variant(dnn=trained_model, 
-               X_test=torch.tensor(testt_data, dtype=torch.float32), 
+               X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
                y_test=np.asarray(testt_labels),
                labdict=labdict,
                path=f"./plots_and_stats/preds_{name}.csv",
-               path_stats=f"./plots_and_stats/scores_{name}.csv")
+               path_stats=f"./plots_and_stats/scores_{name}.csv",
+               my_device_name=device_name
+               )
          )
 
 
@@ -120,7 +134,7 @@ if __name__ == '__main__':
    '''
 
    '''
-   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
+   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1], return_state=True)
    classif_exp(model_1, 
                train_data, 
                val_data, 
@@ -138,7 +152,7 @@ if __name__ == '__main__':
                name="bow_log_reg", 
                epochs=30)
 
-   model_3 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1])
+   model_3 = ModSelfAttention(train_data[0].shape[1], train_data[1].shape[1], return_state=True)
    classif_exp(model_3, 
                train_data, 
                val_data, 

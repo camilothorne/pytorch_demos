@@ -214,7 +214,7 @@ def train_variant(dnn:torch.nn.Module,
             
             if ((i%10 == 0) & (ecount%20 == 0)):
                 
-                # we collect the stats every now and then
+                # We collect the stats every now and then
                 loss_history.append(loss.item())
                 print(" - val. loss at epoch {} and batch {} is: {:.10f}".format(i, ecount, v_loss.item()))
                 print(" - val. accuracy at epoch {} and batch {} is: {:.10f}".format(i, ecount, v_acc))
@@ -242,24 +242,35 @@ def test_variant(dnn:torch.nn.Module,
                  labdict:dict,
                  path:str,
                  path_stats:str,
+                 my_device_name:str,
                  ) -> str:
     '''
     Measure classification performance
     '''
 
+    # Label dictionary
     labd = {v:k for k,v in labdict.items()}
     
+    # Predictions
     y_pred = dnn(X_test)
-
-    y_pred = torch.argmax(y_pred, 1)
+    
+    # Tranfer tensors to CPU (if in GPU) else do nothing
+    if my_device_name != 'cpu':
+        y_pred = torch.argmax(y_pred, 1).cpu()
+    else:
+        y_pred = torch.argmax(y_pred, 1)
+    
+    # Gold
     y_test = np.argmax(y_test, axis=1)
 
+    # Serialize predictions and gold labels
     df = pd.DataFrame({"pred": y_pred.detach().numpy(), 
                       "gold": y_test})
     df['gold'] = df.gold.astype(int).map(labd)
     df['pred'] = df.pred.astype(int).map(labd)
     df.to_csv(path, index=False)
     
+    # Print and serialize the classification report
     result = classification_report(df.gold, 
                                    df.pred, 
                                    zero_division=0)
