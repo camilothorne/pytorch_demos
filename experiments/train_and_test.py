@@ -252,6 +252,7 @@ def test_variant(dnn:torch.nn.Module,
     labd = {v:k for k,v in labdict.items()}
     
     # Predictions
+    dnn.eval() # call model in eval mode
     y_pred = dnn(X_test)
     
     # Tranfer tensors to CPU (if in GPU) else do nothing
