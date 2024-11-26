@@ -342,8 +342,8 @@ class TextLSTMAttention(torch.nn.Module):
         '''
         super(TextBiLSTMAttention, self).__init__()
         self.ret_state = return_state
-        self.rnn = torch.nn.LSTM(input_size=in_features[1], 
-                                 emb_size=in_features[2],
+        self.rnn = torch.nn.LSTM(input_size=in_features[2], 
+                                 emb_size=in_features[1],
                                  batch_first=True,
                                  num_layers=1, 
                                  hidden_size=latent_dim)
