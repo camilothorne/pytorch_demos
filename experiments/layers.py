@@ -115,7 +115,7 @@ class SeqAttention(torch.nn.Module):
 
         E_t     = a(H_t) \cdot a(H_t)^T
         Alpha_t = softmax(E_t)
-        C       = \sum_t Alpha_t \cdot H_t      
+        C       = \sum_t Alpha_t \cdot H_t  
 
     '''    
     def __init__(self, input_dim:int) -> None:
@@ -129,20 +129,27 @@ class SeqAttention(torch.nn.Module):
         '''
         Forward pass
         '''
-        # Alignment scores
+        # Linear transformation
         hid = self.hidden(input)
 
+        # Alignment scores
         e = torch.matmul(hid.transpose(1,2), hid)
 
         # Compute the weights
         alpha = torch.nn.functional.softmax(e, dim=1)
-        #print('alpha', alpha.shape)
 
         # Compute context
         context = torch.sum(
-                        torch.matmul(alpha, hid.transpose(1,2)), 
+                        torch.matmul(alpha, input.transpose(1,2)), 
                         dim=1)
 
+        # For debugging
+        #print('H_t (query):', input.shape)
+        #print('a(H_t) (value):', hid.shape)
+        #print('E_t (key):', e.shape)
+        #print('Alpha_t (key):', alpha.shape)
+        #print('context C (result):', context.shape)
+        
         return context
 
 
@@ -276,7 +283,7 @@ class TextBiLSTMAttention(torch.nn.Module):
     one-hot encoding / sequence data, based on this class
 
         LSTM(input_size, hidden_size, num_layers=1, bias=True, 
-            batch_first=False, dropout=0.0, bidirectional=False, 
+            batch_first=False, dropout=0.0, bidirectional=True, 
             proj_size=0, device=None, dtype=None)
     
     '''
@@ -302,18 +309,14 @@ class TextBiLSTMAttention(torch.nn.Module):
         
     def forward(self, x):
 
-        lstm_out, (h_s, c_s)    = self.rnn(x) # (batch_size, sequence_length, embedding_dim)
+        lstm_out, (h_s, c_s)    = self.rnn(x) # (batch_size, embedding_dim, sequence_length)
         #print('input', lstm_out.shape)
-
         out                     = self.attention(lstm_out)
         #print('context', out.shape)
-
         out                     = self.linear(out)
         #print('linear', out.shape)
-
         out                     = self.output_layer(out)
         #print('output', out.shape)
-
         if self.ret_state:
             return h_s, c_s, out
         else:
@@ -321,7 +324,7 @@ class TextBiLSTMAttention(torch.nn.Module):
         
 class TextLSTMAttention(torch.nn.Module):
     '''
-    Custom biLSTM w. attention model for 
+    Custom LSTM w. attention model for 
     one-hot encoding / sequence data, based on this class
 
         LSTM(input_size, hidden_size, num_layers=1, bias=True, 
@@ -331,7 +334,8 @@ class TextLSTMAttention(torch.nn.Module):
     '''
     def __init__(self, in_features, 
                  latent_dim, out_features, 
-                 return_state=False):
+                 return_state=False,
+                 return_attention=False):
         '''
         Key parameters
 
@@ -340,37 +344,43 @@ class TextLSTMAttention(torch.nn.Module):
         - latent_dim:     hidden state dimenstion
 
         '''
-        super(TextBiLSTMAttention, self).__init__()
+        super(TextLSTMAttention, self).__init__()
         self.ret_state = return_state
-        self.rnn = torch.nn.LSTM(input_size=in_features[2], 
-                                 emb_size=in_features[1],
-                                 batch_first=True,
-                                 num_layers=1, 
-                                 hidden_size=latent_dim)
-        # if num_heads=1, we get BERT self attention
-        self.attention = torch.nn.MultiheadAttention(embed_dim=latent_dim, 
-                                                     num_heads=1, 
-                                                     batch_first=True,
-                                                     dropout=0.1)
-        self.linear = torch.nn.Linear(in_features[1], 
-                                      out_features)
+        self.ret_att = return_attention
+        self.rnn = torch.nn.LSTM(input_size=in_features[1], 
+                                     hidden_size=latent_dim,
+                                     bidirectional=False)
+        self.attention = SeqAttention(latent_dim)
+        self.linear = torch.nn.Linear(in_features[2], out_features)
         self.output_layer = torch.nn.Softmax(dim=-1)
         
-    def forward(self, x, h, s):
+    def forward(self, x):
+        '''
+        Forward pass:
 
-        lstm_out, (h_s, c_s)    = self.rnn(x, h, s) # (batch_size, embedding_dim, seq_length)
-        #print('input', lstm_out.shape)
+            - input shape: (B, V, T)
+            - attention shape: (B, T)
+            - output shape: (B, L)
+        
+        where B = batch size, embedding dimension, L = number of labels and
+        L = sequence length    
+        '''
 
-        out                     = self.attention(lstm_out)
-        #print('context', out.shape)
+        x                       = x.transpose(1,2) # (batch_size, sequence_length, embedding_dim)
+        lstm_out, (h_s, c_s)    = self.rnn(x) # (batch_size, sequence_length, hidden_dim)     
+        att_out                 = self.attention(lstm_out) # (batch_size, sequence_length)
+        out                     = self.linear(att_out) # (batch_size, num_labels)
+        out                     = self.output_layer(out) # (batch_size, num_labels)
 
-        out                     = self.linear(out)
-        #print('linear', out.shape)
-
-        out                     = self.output_layer(out)
-        #print('output', out.shape)
+        # For debugging
+        #print('Input (transposed):', x.shape) 
+        #print('LSTM layer:', lstm_out.shape)
+        #print('Attention layer:', att_out.shape)
+        #print('Output (softmax):', out.shape)
 
         if self.ret_state:
             return h_s, c_s, out
+        elif self.ret_att:
+            return att_out, out
         else:
             return out

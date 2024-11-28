@@ -3,7 +3,7 @@ from experiments.bow_enc import *
 from experiments.one_hot_enc import *
 from experiments.layers import ModBertAttention, ModLogReg, \
                                ModSelfAttention, TextConv1D, \
-                               TextBiLSTMAttention
+                               TextBiLSTMAttention, TextLSTMAttention
 import torch, scipy
 
 
@@ -63,10 +63,20 @@ def classif_exp(model:torch.nn.Module,
    # Use GPU for acceleration if avilable
    if torch.backends.mps.is_available():
       device_name = 'mps'
+      '''
+      The following instruction may freeze the OS:
+      available memory on silicon Macs is usually ~ N - 12 GBs, where
+      N is the maximum available RAM of an M1-M3 processor
+      (e.g. if N = 24, then 12 GBs)
+      '''
+      torch.mps.set_per_process_memory_fraction(0.0)
    elif torch.cuda.is_available():
       device_name = 'cuda'
    else:
       device_name = 'cpu'
+
+   print("--------------------")
+   print(f"Using device (train and test): {device_name}")
 
    device = torch.device(device_name)
    model.to(memory_format=torch.channels_last)
@@ -80,7 +90,8 @@ def classif_exp(model:torch.nn.Module,
                         val_history=val_history,
                         loss_history=loss_history,
                         data_size=train_data[0].shape[0],
-                        batch_size=32, # standard batch size of 32
+                        #batch_size=32, # standard batch size of 32
+                        batch_size=16, # to avoid OOM errors on M2 chips
                         clip_value=100,
                         my_lr=0.0001,
                         my_momentum=0.009,
@@ -194,7 +205,7 @@ if __name__ == '__main__':
                epochs=30)
    '''
    
-   model_bl_att = TextBiLSTMAttention(in_features=train_data[0].shape, 
+   model_bl_att = TextLSTMAttention(in_features=train_data[0].shape, 
                                       latent_dim=32, 
                                       out_features=train_data[1].shape[1])
    classif_exp(model_bl_att, 
@@ -202,5 +213,5 @@ if __name__ == '__main__':
                val_data, 
                test_data, 
                labeldict, 
-               name="onehot_blistm_att", 
-               epochs=30)
+               name="onehot_lstm_att", 
+               epochs=1)
