@@ -25,8 +25,14 @@ python main.py
 
 #### Attention Mechanisms
 
-1) Classical self-attention layer (a.k.a. [hierarchical attention](https://aclanthology.org/N16-1174/)).
-   In this case the so-called context $c$ becomes a vector:
+1) Classical self-attention (a.k.a. [hierarchical attention](https://aclanthology.org/N16-1174/)).
+   We use it to implement attention on top of traditional RNN-based models over
+   documents $d$ represented as sequences $w_1,\dots,w_t$ of words.
+   In this version $h_i$ refers to
+   the state of a hidden recursive unit at word/time $i$, for $0 \leq i \leq t$.
+   The attention context $c$ becomes a $t$-dimensional vector that measures the contribution of
+   each word $i$ in $d$ to the model's decision. In this setting, usually $c$ is fed into
+   a softmax classification layer.
 
   $$
   \begin{align}
@@ -36,7 +42,9 @@ python main.py
   \end{align}
   $$
 
-2) Self-attention layer as in [transformers](https://arxiv.org/pdf/1706.03762). In this case, the context $c$ is a matrix or tensor:
+2) Self-attention layer as in [transformer attention](https://arxiv.org/pdf/1706.03762). In this case, the context $c$ is a matrix or tensor,
+and $h$ is a fully connected (hidden) layer. Additionally, $\text{softmax}( u \cdot u^T)$ can be normalized by the square root $\sqrt(d)$ of
+trainable parameter $d$ (which we avoid for simplicity in this demo).
   
   $$
   \begin{align}
