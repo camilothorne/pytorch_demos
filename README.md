@@ -54,7 +54,8 @@ we define different attention flavors. We also include two baselines for compari
 
 2) Self-attention layer as in [transformer attention](https://arxiv.org/pdf/1706.03762). In this case, the context
    $c$ is a matrix or tensor,
-   and $h$ is a fully connected (hidden) layer. Additionally, $\text{softmax}( u \cdot u^T)$ can be normalized by the square root $\sqrt(d)$ of trainable parameter $d$ (which we avoid for simplicity in this demo):
+   and $h$ is a fully connected (hidden) layer. Additionally, $\text{softmax}( u \cdot u^T)$ can be normalized by
+   the square root $\sqrt{d}$ of a trainable sclaing parameter $d$ (which we avoid for simplicity in this demo):
   
   $$
   \begin{align*}
