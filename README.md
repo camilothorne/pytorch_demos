@@ -54,8 +54,8 @@ we define different attention flavors. We also include two baselines for compari
 
 2) Self-attention layer as in [transformer attention](https://arxiv.org/pdf/1706.03762). In this case, the context
    $c$ is a matrix or tensor,
-   and $h$ is a fully connected (hidden) layer. This layer is usually fed into a linear (projection) layer
-   whose output is fed to further downstream layers or directly into a softmax layer.
+   $h$ is a fully connected (hidden) layerm and $c$ is usually fed into a linear (projection) layer
+   whose output is fed to further downstream layers or directly into a softmax layer for classification.
    Additionally, $\text{softmax}( u \cdot u^T)$ can be normalized by
    the square root $\sqrt{d}$ of a trainable scaling parameter $d$, but we avoid this for simplicity in this demo:
   
