@@ -35,7 +35,7 @@ we define different attention flavors. We also include two baselines for compari
 
 #### Attention Mechanisms
 
-1) Classical self-attention (a.k.a. [hierarchical attention](https://aclanthology.org/N16-1174/)).
+1) Classical self-attention (a.k.a. [hierarchical attention](https://aclanthology.org/N16-1174.pdf)).
    We use it to implement attention on top of traditional RNN-based models over
    documents $d$ represented as sequences $w_1,\dots,w_t$ of words.
    In this version $h_i$ refers to
