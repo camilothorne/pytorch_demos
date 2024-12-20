@@ -10,7 +10,7 @@ Custom attention layers
 
 class BertAttention(torch.nn.Module):
     '''
-    Definition of BERT attention layer is as follows:
+    The definition of transformer self-attention is as follows:
 
         out = softmax( (Q * K^T) / sqrt(d)) * V
 
@@ -18,8 +18,9 @@ class BertAttention(torch.nn.Module):
     resp. activation of previous layer.
 
     Derived from 
-        
-        https://stackoverflow.com/questions/76648620/how-do-i-implement-this-attention-layer-in-pytorch
+    
+       - https://arxiv.org/pdf/1706.03762 (paper)
+       - https://stackoverflow.com/questions/76648620/how-do-i-implement-this-attention-layer-in-pytorch (blog)
     
     '''
     def __init__(self, input_dim: int) -> None:
@@ -61,47 +62,47 @@ class BertAttention(torch.nn.Module):
         return out, attention_weights
     
 
-class SelfAttention(torch.nn.Module):
-    '''
-    Class implementing self-attention from 
-        
-        https://arxiv.org/pdf/1512.08756.pdf
-    
-    Adapted from attention for RNNs as described above.
-    
-    '''
-    def __init__(self, input_dim:int) -> None:
-        '''
-        Constructor
-        '''
-        super(SelfAttention,self).__init__()
-        self.hidden = torch.nn.Linear(input_dim, input_dim)
-        #self.reset_parameters()
-
-    def reset_parameters(self) -> None:
-        '''
-        Init parameters with random weights
-        '''
-        stdv = 1.0 / math.sqrt(self.feature_size)
-        for weight in self.parameters():
-            weight.data.uniform_(-stdv, +stdv)      
- 
-    def forward(self, input:torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        '''
-        Forward pass for back-propagation
-        '''
-        # Alignment scores
-        c = self.hidden(input)
-        e = torch.matmul(input.transpose(0,1), c)
-
-        # Compute the weights
-        alpha = torch.nn.functional.softmax(e, dim=1)
-        
-        # Compute the context vector
-        context = torch.matmul(input, alpha)
-        output = input * torch.sum(context, dim=1)[:,None]
-
-        return output, context
+# class SelfAttention(torch.nn.Module):
+#     '''
+#     Class implementing self-attention from 
+#        
+#         https://arxiv.org/pdf/1512.08756.pdf
+#    
+#     Adapted from attention for RNNs as described above.
+#    
+#     '''
+#     def __init__(self, input_dim:int) -> None:
+#         '''
+#         Constructor
+#         '''
+#         super(SelfAttention,self).__init__()
+#         self.hidden = torch.nn.Linear(input_dim, input_dim)
+#         #self.reset_parameters()
+#
+#     def reset_parameters(self) -> None:
+#         '''
+#         Init parameters with random weights
+#         '''
+#         stdv = 1.0 / math.sqrt(self.feature_size)
+#         for weight in self.parameters():
+#             weight.data.uniform_(-stdv, +stdv)      
+# 
+#     def forward(self, input:torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+#         '''
+#         Forward pass for back-propagation
+#         '''
+#         # Alignment scores
+#         c = self.hidden(input)
+#         e = torch.matmul(input.transpose(0,1), c)
+#
+#         # Compute the weights
+#         alpha = torch.nn.functional.softmax(e, dim=1)
+#       
+#         # Compute the context vector
+#         context = torch.matmul(input, alpha)
+#         output = input * torch.sum(context, dim=1)[:,None]
+#
+#         return output, context
     
 
 class SeqAttention(torch.nn.Module):
@@ -201,30 +202,30 @@ class ModBertAttention(torch.nn.Module):
             return out 
 
 
-class ModSelfAttention(torch.nn.Module):
-    '''
-    Custom model using custom BERT-like layer
-    '''
-    def __init__(self, input_features, 
-                 out_features,
-                 return_attention=False):
-
-        super(ModSelfAttention, self).__init__()
-        self.attention = return_attention
-        self.rnn = SelfAttention(input_features)
-        self.linear = torch.nn.Linear(input_features, out_features)
-        self.output_layer = torch.nn.Softmax(dim=-1)
-
-    def forward(self, input:torch.tensor) -> Union[torch.tensor, 
-                                                   tuple[torch.tensor, 
-                                                         torch.tensor]]:
-        res, att = self.rnn(input)
-        lin = self.linear(res)
-        out = self.output_layer(lin)
-        if self.attention:
-            return att, out
-        else:
-            return out 
+# class ModSelfAttention(torch.nn.Module):
+#     '''
+#     Custom model using custom BERT-like layer
+#     '''
+#     def __init__(self, input_features, 
+#                  out_features,
+#                  return_attention=False):
+#
+#         super(ModSelfAttention, self).__init__()
+#         self.attention = return_attention
+#         self.rnn = SelfAttention(input_features)
+#         self.linear = torch.nn.Linear(input_features, out_features)
+#         self.output_layer = torch.nn.Softmax(dim=-1)
+#
+#     def forward(self, input:torch.tensor) -> Union[torch.tensor, 
+#                                                    tuple[torch.tensor, 
+#                                                          torch.tensor]]:
+#         res, att = self.rnn(input)
+#         lin = self.linear(res)
+#         out = self.output_layer(lin)
+#         if self.attention:
+#             return att, out
+#         else:
+#             return out 
         
     
 '''
@@ -277,50 +278,47 @@ Self attention classification model for one-hot encoded (sequential) data
 '''
 
 
-class TextBiLSTMAttention(torch.nn.Module):
-    '''
-    Custom biLSTM w. attention model for 
-    one-hot encoding / sequence data, based on this class
+# class TextBiLSTMAttention(torch.nn.Module):
+#     '''
+#     Custom biLSTM w. attention model for 
+#     one-hot encoding / sequence data, based on this class
 
-        LSTM(input_size, hidden_size, num_layers=1, bias=True, 
-            batch_first=False, dropout=0.0, bidirectional=True, 
-            proj_size=0, device=None, dtype=None)
-    
-    '''
-    def __init__(self, in_features, 
-                 latent_dim, out_features, 
-                 return_state=False):
-        '''
-        Key parameters
-
-        - in_features     (word_dim, length) tuple
-        - out_features:   ouput features
-        - latent_dim:     hidden state dimenstion
-
-        '''
-        super(TextBiLSTMAttention, self).__init__()
-        self.ret_state = return_state
-        self.rnn = torch.nn.LSTM(input_size=in_features[2], 
-                                     hidden_size=latent_dim,
-                                     bidirectional=True)
-        self.attention = SeqAttention(latent_dim * 2)
-        self.linear = torch.nn.Linear(in_features[1], out_features)
-        self.output_layer = torch.nn.Softmax(dim=-1)
-        
-    def forward(self, x):
-
-        lstm_out, (h_s, c_s)    = self.rnn(x) # (batch_size, embedding_dim, sequence_length)
-        #print('input', lstm_out.shape)
-        out                     = self.attention(lstm_out)
-        #print('context', out.shape)
-        out                     = self.linear(out)
-        #print('linear', out.shape)
-        out                     = self.output_layer(out)
-        #print('output', out.shape)
-        if self.ret_state:
-            return h_s, c_s, out
-        else:
-            return out
+#         LSTM(input_size, hidden_size, num_layers=1, bias=True, 
+#             batch_first=False, dropout=0.0, bidirectional=True, 
+#             proj_size=0, device=None, dtype=None)
+#
+#     '''
+#     def __init__(self, in_features, 
+#                  latent_dim, out_features, 
+#                  return_state=False):
+#         '''
+#         Key parameters
+#         - in_features     (word_dim, length) tuple
+#         - out_features:   ouput features
+#         - latent_dim:     hidden state dimenstion
+#         '''
+#         super(TextBiLSTMAttention, self).__init__()
+#         self.ret_state = return_state
+#         self.rnn = torch.nn.LSTM(input_size=in_features[2], 
+#                                      hidden_size=latent_dim,
+#                                      bidirectional=True)
+#         self.attention = SeqAttention(latent_dim * 2)
+#         self.linear = torch.nn.Linear(in_features[1], out_features)
+#         self.output_layer = torch.nn.Softmax(dim=-1)
+#       
+#     def forward(self, x):
+#         lstm_out, (h_s, c_s)    = self.rnn(x) # (batch_size, embedding_dim, sequence_length)
+#         #print('input', lstm_out.shape)
+#         out                     = self.attention(lstm_out)
+#         #print('context', out.shape)
+#         out                     = self.linear(out)
+#         #print('linear', out.shape)
+#         out                     = self.output_layer(out)
+#         #print('output', out.shape)
+#         if self.ret_state:
+#             return h_s, c_s, out
+#         else:
+#             return out
         
 class TextLSTMAttention(torch.nn.Module):
     '''
