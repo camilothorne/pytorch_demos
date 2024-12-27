@@ -152,7 +152,8 @@ def train_variant(dnn:torch.nn.Module,
                   my_loss:torch.nn.Module,
                   val_size:int,
                   loss_fun:str, # name of loss function
-                  epochs:int
+                  epochs:int,
+                  scores:bool=False,
     ) -> tuple[dict, torch.nn.Module]:
     '''
     Train and validate model -
@@ -179,6 +180,7 @@ def train_variant(dnn:torch.nn.Module,
     torch.autograd.set_detect_anomaly(True) # check for anomaly in gradients
 
     print("--------------------")
+    print(f'[Return scores/attention? {scores}]')
     print(f"SGD for {epochs} epochs, with batch size {batch_size}:")
 
     for i in tqdm(range(epochs)):
@@ -191,8 +193,11 @@ def train_variant(dnn:torch.nn.Module,
         while data_size - start > batch_size:
 
             optimizer.zero_grad()
-            out = dnn(X_train[start:start+batch_size]) # forward pass
-            loss = my_loss(out, y_train[start:start+batch_size]) # training loss
+            if scores:
+                   y_pred = dnn(X_train[start:start+batch_size])[-1] # forward pass
+            else:
+                   y_pred = dnn(X_train[start:start+batch_size]) # forward pass
+            loss   = my_loss(y_pred, y_train[start:start+batch_size]) # training loss
             loss.backward()
             if clip_value > 0:
                 torch.nn.utils.clip_grad_norm_(dnn.parameters(), clip_value)
@@ -207,7 +212,10 @@ def train_variant(dnn:torch.nn.Module,
 
         while ((val_size - estart) > batch_size):
 
-            y_pred = dnn(X_val[estart:estart+batch_size])
+            if scores:
+                   y_pred = dnn(X_val[estart:estart+batch_size])[-1] # eval
+            else:
+                   y_pred = dnn(X_val[estart:estart+batch_size]) # eval
             v_loss = my_loss(y_pred, y_val[estart:estart+batch_size]) # validation loss
             v_acc = (torch.argmax(y_pred, 1) == torch.argmax(y_val[estart:estart+batch_size], 
                                                            1)).float().mean() # validation accuracy
@@ -224,6 +232,9 @@ def train_variant(dnn:torch.nn.Module,
                     best_weights = copy.deepcopy(dnn.state_dict())
                 if v_acc > best_acc:
                     best_acc = v_acc
+                # Uncomment for debugging
+                #print(f' ** val. labels: {y_val[estart:estart+batch_size]}')
+                #print(f' ** predicted prob. distrib.: {y_pred}')
             
             estart = estart + batch_size
             ecount = ecount + 1
@@ -243,9 +254,11 @@ def test_variant(dnn:torch.nn.Module,
                  path:str,
                  path_stats:str,
                  my_device_name:str,
+                 y_index:np.array=None,
+                 y_df:pd.DataFrame=None,
                  ) -> str:
     '''
-    Measure classification performance
+    Measure classification performance (basic)
     '''
 
     # Label dictionary
@@ -253,6 +266,8 @@ def test_variant(dnn:torch.nn.Module,
     
     # Predictions
     dnn.eval() # call model in eval mode
+
+    # Get predictions
     y_pred = dnn(X_test)
     
     # Tranfer tensors to CPU (if in GPU) else do nothing
@@ -261,22 +276,118 @@ def test_variant(dnn:torch.nn.Module,
     else:
         y_pred = torch.argmax(y_pred, 1)
     
+    # For debugging
+    #print(f'Predictions: {y_pred.shape}')
+    #print(f'Gold: {y_test.shape}')
+
     # Gold
     y_test = np.argmax(y_test, axis=1)
 
     # Serialize predictions and gold labels
+    y_df = y_df[['Document']]
+    y_df['Index'] = y_df.index
     df = pd.DataFrame({"pred": y_pred.detach().numpy(), 
                       "gold": y_test})
-    df['gold'] = df.gold.astype(int).map(labd)
-    df['pred'] = df.pred.astype(int).map(labd)
+    df['Gold'] = df.gold.astype(int).map(labd)
+    df['Pred'] = df.pred.astype(int).map(labd)
+    df['Index'] = y_index
+    df = df.merge(y_df, on='Index', how='inner')[['Gold', 'Pred', 'Index', 'Document']]
+
+    print()
+    print(df.head(3))
+    print()
+
+    # Save predictions to CSV file
     df.to_csv(path, index=False)
     
     # Print and serialize the classification report
-    result = classification_report(df.gold, 
-                                   df.pred, 
+    result = classification_report(df.Gold, 
+                                   df.Pred, 
                                    zero_division=0)
-    result_dict = classification_report(df.gold, 
-                                   df.pred, 
+    result_dict = classification_report(df.Gold, 
+                                   df.Pred, 
+                                   zero_division=0,
+                                   output_dict=True)
+    df_res = df = pd.DataFrame(result_dict).transpose()
+    df_res.to_csv(path_stats)
+
+    return result
+
+
+def test_variant_one_hot(dnn:torch.nn.Module, 
+                 X_test:np.array, 
+                 y_test:np.array,
+                 labdict:dict,
+                 path:str,
+                 path_stats:str,
+                 my_device_name:str,
+                 y_index:np.array=None,
+                 y_df:pd.DataFrame=None,
+                 ) -> str:
+    '''
+    Measure classification performance
+    with one hot encodings and attention.
+    '''
+
+    # Label dictionary
+    labd = {v:k for k,v in labdict.items()}
+    
+    # Predictions
+    dnn.eval() # call model in eval mode
+
+    # Get predictions w. attention scores
+    y_att, y_pred = dnn(X_test)
+    
+    # Tranfer tensors to CPU (if in GPU) else do nothing
+    if my_device_name != 'cpu':
+        y_pred = torch.argmax(y_pred, 1).cpu()
+    else:
+        y_pred = torch.argmax(y_pred, 1)
+
+    # For debugging
+    #print(f'Attention: {y_att.shape}')
+    #print(f'Predictions: {y_pred.shape}')
+    #print(f'Gold: {y_test.shape}')
+
+    # Normalize attention across sequence length
+    # using softmax
+    y_att = torch.softmax(y_att, 1)
+
+    # Gold
+    y_test = np.argmax(y_test, axis=1)
+
+    # Serialize predictions and gold labels
+    y_df = y_df[['Document']]
+    y_df['Index'] = y_df.index
+    df = pd.DataFrame({"pred": y_pred.detach().numpy(), 
+                      "gold": y_test})
+    df['Gold'] = df.gold.astype(int).map(labd)
+    df['Pred'] = df.pred.astype(int).map(labd)
+    df['Index'] = y_index
+    df = df.merge(y_df, on='Index', how='inner')[['Gold', 'Pred', 'Index', 'Document']]
+
+    # Save attention scores
+    if my_device_name == 'cpu':
+        df['Att'] = list(y_att.detach().numpy())
+    else:
+        df['Att'] = list(y_att.detach().cpu().numpy())
+
+    # Get truncated test sequences per example
+    # (returns a list of tokens, one per score)
+    df['Seq'] = df['Document'].apply(lambda x: x.lower().split(" ")[0:y_att.shape[1]])
+
+    print('Predictions:\n')
+    print(df.head(3))
+
+    # Save predictions to CSV file
+    df.to_csv(path, index=False)
+    
+    # Print and serialize the classification report
+    result = classification_report(df.Gold, 
+                                   df.Pred, 
+                                   zero_division=0)
+    result_dict = classification_report(df.Gold, 
+                                   df.Pred, 
                                    zero_division=0,
                                    output_dict=True)
     df_res = df = pd.DataFrame(result_dict).transpose()

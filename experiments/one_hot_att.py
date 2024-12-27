@@ -11,7 +11,9 @@ def classif_exp(model:torch.nn.Module,
                 test_data:np.array,
                 labdict:dict,
                 name:str,
-                epochs:int) -> None:
+                epochs:int,
+                scores:bool,
+                y_df=pd.DataFrame) -> None:
    '''
    Train and test document classifier 
    '''
@@ -53,10 +55,16 @@ def classif_exp(model:torch.nn.Module,
       testt_data = test_data[0]
    
    # Test labels
-   if scipy.sparse.issparse(test_data[1]):
-      testt_labels = test_data[1].todense()
+   if scipy.sparse.issparse(test_data[2]):
+      testt_labels = test_data[2].todense()
    else:
-      testt_labels = test_data[1]
+      testt_labels = test_data[2]
+
+   # Test indexes
+   if scipy.sparse.issparse(test_data[1]):
+      testt_index = test_data[1].todense()
+   else:
+      testt_index = test_data[1]
 
    # Use GPU for acceleration if avilable
    if torch.backends.mps.is_available():
@@ -68,10 +76,13 @@ def classif_exp(model:torch.nn.Module,
       (e.g. if N = 24, then 12 GBs)
       '''
       torch.mps.set_per_process_memory_fraction(0.0)
+      batch_size=16 # to avoid OOM errors on M2 chips
    elif torch.cuda.is_available():
       device_name = 'cuda'
+      batch_size=32 # standard batch size of 32
    else:
       device_name = 'cpu'
+      batch_size=32 # standard batch size of 32
 
    print("--------------------")
    print(f"Using device (train and test): {device_name}")
@@ -88,8 +99,7 @@ def classif_exp(model:torch.nn.Module,
                         val_history=val_history,
                         loss_history=loss_history,
                         data_size=train_data[0].shape[0],
-                        #batch_size=32, # standard batch size of 32
-                        batch_size=16, # to avoid OOM errors on M2 chips
+                        batch_size=batch_size,
                         clip_value=100,
                         my_lr=0.0001,
                         my_momentum=0.009,
@@ -98,6 +108,7 @@ def classif_exp(model:torch.nn.Module,
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
+                        scores=scores
                  )
 
    plot_training_curve(loss_history=loss_history, 
@@ -106,18 +117,35 @@ def classif_exp(model:torch.nn.Module,
 
    print(f"Performance on test set")
    print("--------------------")
-   print(test_variant(dnn=trained_model, 
-               X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
-               y_test=np.asarray(testt_labels),
-               labdict=labdict,
-               path=f"./plots_and_stats/preds_{name}.csv",
-               path_stats=f"./plots_and_stats/scores_{name}.csv",
-               my_device_name=device_name
-               )
-         )
+   print(f"[Return scores/attention? {scores}]")
+
+   if scores:
+      print(test_variant_one_hot(dnn=trained_model, 
+                  X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
+                  y_test=np.asarray(testt_labels),
+                  labdict=labdict,
+                  path=f"./plots_and_stats/preds_{name}.csv",
+                  path_stats=f"./plots_and_stats/scores_{name}.csv",
+                  my_device_name=device_name,
+                  y_index=testt_index,
+                  y_df=y_df
+                  )
+            )
+   else:
+      print(test_variant(dnn=trained_model, 
+                  X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
+                  y_test=np.asarray(testt_labels),
+                  labdict=labdict,
+                  path=f"./plots_and_stats/preds_{name}.csv",
+                  path_stats=f"./plots_and_stats/scores_{name}.csv",
+                  my_device_name=device_name,
+                  y_index=testt_index,
+                  y_df=y_df
+                  )
+            )
 
 
-def one_hot_att(epochs:int=30)->None:
+def one_hot_att(epochs:int, scores:bool)->None:
 
    '''
    Pre-process data using one hot encoder
@@ -140,13 +168,23 @@ def one_hot_att(epochs:int=30)->None:
    Run experiment
    '''
    
-   model_bl_att = TextLSTMAttention(in_features=train_data[0].shape, 
+   if scores:
+      # Returns attention scores
+      model_bl_att = TextLSTMAttention(in_features=train_data[0].shape, 
+                                       latent_dim=32, 
+                                       out_features=train_data[1].shape[1],
+                                       return_attention=True)
+   else:
+      model_bl_att = TextLSTMAttention(in_features=train_data[0].shape, 
                                       latent_dim=32, 
                                       out_features=train_data[1].shape[1])
+
    classif_exp(model_bl_att, 
                train_data, 
                val_data, 
-               test_data, 
+               test_data,
                labeldict, 
                name="onehot_lstm_att", 
-               epochs=epochs)
+               epochs=epochs, 
+               scores=scores,
+               y_df=one_encode.get_raw_data())

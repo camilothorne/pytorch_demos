@@ -28,6 +28,7 @@ class BoWEconde:
         self._labdict = None
         self._raw_labels = self._df['Label']
         self._labels = self._define_labels()
+        self._indices = np.arange(self._df.shape[0])
 
     def _vectorizer(self):
         return self._vectorizer
@@ -64,11 +65,12 @@ class BoWEconde:
         '''
         We use 20% for test, 10% for validation and 70% for training
         '''
-        X, X_te, y, y_te = train_test_split(self._vec_data,
+        X, X_te, l, y_te , _, i_te = train_test_split(self._vec_data,
                                             self._labels,
+                                            self._indices,
                                             test_size=0.2,
                                             random_state=42)
-        X_tr, X_va, y_tr, y_va = train_test_split(X,y,
+        X_tr, X_va, y_tr, y_va = train_test_split(X,l,
                                             test_size=0.1,
                                             random_state=42)
-        return (X_tr, y_tr), (X_te, y_te), (X_va, y_va)
+        return (X_tr, y_tr), (X_te, i_te, y_te), (X_va, y_va)

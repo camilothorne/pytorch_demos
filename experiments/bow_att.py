@@ -68,10 +68,13 @@ def classif_exp(model:torch.nn.Module,
       (e.g. if N = 24, then 12 GBs)
       '''
       torch.mps.set_per_process_memory_fraction(0.0)
+      batch_size=16 # to avoid OOM errors on M2 chips
    elif torch.cuda.is_available():
       device_name = 'cuda'
+      batch_size=32 # standard batch size of 32
    else:
       device_name = 'cpu'
+      batch_size=32 # standard batch size of 32
 
    print("--------------------")
    print(f"Using device (train and test): {device_name}")
@@ -88,8 +91,7 @@ def classif_exp(model:torch.nn.Module,
                         val_history=val_history,
                         loss_history=loss_history,
                         data_size=train_data[0].shape[0],
-                        #batch_size=32, # standard batch size of 32
-                        batch_size=16, # to avoid OOM errors on M2 chips
+                        batch_size=batch_size,
                         clip_value=100,
                         my_lr=0.0001,
                         my_momentum=0.009,
@@ -117,7 +119,7 @@ def classif_exp(model:torch.nn.Module,
          )
 
 
-def bow_attention(epochs:int=30)->None:
+def bow_attention(epochs)->None:
 
    '''
    Pre-process data using BOW encoder
