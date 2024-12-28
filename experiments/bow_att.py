@@ -53,10 +53,16 @@ def classif_exp(model:torch.nn.Module,
       testt_data = test_data[0]
    
    # Test labels
-   if scipy.sparse.issparse(test_data[1]):
-      testt_labels = test_data[1].todense()
+   if scipy.sparse.issparse(test_data[2]):
+      testt_labels = test_data[2].todense()
    else:
-      testt_labels = test_data[1]
+      testt_labels = test_data[2]
+
+   # Test indexes
+   if scipy.sparse.issparse(test_data[1]):
+      testt_index = test_data[1].todense()
+   else:
+      testt_index = test_data[1]
 
    # Use GPU for acceleration if avilable
    if torch.backends.mps.is_available():
@@ -114,7 +120,9 @@ def classif_exp(model:torch.nn.Module,
                labdict=labdict,
                path=f"./plots_and_stats/preds_{name}.csv",
                path_stats=f"./plots_and_stats/scores_{name}.csv",
-               my_device_name=device_name
+               my_device_name=device_name,
+               y_index=testt_index,
+               y_df=y_df
                )
          )
 
@@ -149,4 +157,5 @@ def bow_attention(epochs)->None:
                test_data, 
                labeldict, 
                name="bow_bert_attention", 
+               y_df=bow_encode.get_raw_data(),
                epochs=epochs)
