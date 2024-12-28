@@ -21,10 +21,12 @@ pip install -r requirements.txt
 ```
 and to run the experiments, type
 ```
-python main.py -e <exp_name>
+python main.py -e <exp_name> -i <iter> [-s <flag>]
 ```
-with `<exp_name>` one of `bow_base`, `one_hot_base`, `bow_att` or `one_hot_att`, corresponding
-to the implementations described below.
+With `<exp_name>` one of `bow_base`, `one_hot_base`, `bow_att` or `one_hot_att` (a string), corresponding
+to the implementations described below; while `<iter>` corresponds to the number of epochs (an integer). If
+if option `-s` is set to (string) `yes`, the models will print feature and attention scores.
+For more information type `python main.py -h`.
 
 The results of the experiments will be logged on the `plots_and_stats` folder.
 
