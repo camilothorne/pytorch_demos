@@ -25,7 +25,7 @@ python main.py -e <exp_name> -i <iter> [-s <flag>]
 ```
 `<exp_name>` should be one of `bow_base`, `one_hot_base`, `bow_att` or `one_hot_att` (a string), corresponding
 to the implementations described below. `<iter>` refers to the number of epochs (an integer). Lastly, 
-if option `-s` is set to (string) `yes`, the models will print feature and attention scores.
+if option `-s` is set to (string) `yes`, the models will print feature and/or attention scores (depending on the model trained).
 For more information type `python main.py -h`. Please note that you might need to run a comparatively high number of
 training epochs until training with attention converges.
 

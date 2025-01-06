@@ -11,7 +11,7 @@ parser.add_argument('-e', '--exp', required=True,type=str,
 parser.add_argument('-i', '--iter', required=True, type=int,
                     help='number of epochs (integer)')
 parser.add_argument('-s', '--sc', required=False, type=str,
-                    help='if yes: returns attention scores for one_hot_att')
+                    help='if yes: returns attention scores for: [bow_base, bow_att, one_hot_att]')
 args = parser.parse_args()
 
 epochs = args.iter
