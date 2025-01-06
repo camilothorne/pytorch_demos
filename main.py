@@ -21,11 +21,11 @@ else:
     scores = False
 
 if args.exp == 'bow_base':
-    bow_linear.bow_linear(epochs)
+    bow_linear.bow_linear(epochs, scores)
 elif args.exp == 'one_hot_base':
     one_hot_cnn.one_hot_cnn(epochs)
 elif args.exp == 'bow_att':
-    bow_att.bow_attention(epochs)
+    bow_att.bow_attention(epochs, scores)
 elif args.exp == 'one_hot_att':
     one_hot_att.one_hot_att(epochs, scores)
 else:

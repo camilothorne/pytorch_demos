@@ -50,16 +50,25 @@ class BertAttention(torch.nn.Module):
         keys = self.key(input)
         queries = self.query(input)
         values = self.value(input)
+
         # Scaled dot-product attention
         scores = torch.matmul(queries.transpose(0,1), keys) / (self.feature_size**0.5)
+        
         # Apply mask (if provided)
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -1e9)
+        
         # Apply softmax
         attention_weights = torch.nn.functional.softmax(scores, dim=-1)
+        
         # Multiply weights with values
         out = torch.matmul(values, attention_weights)
-        return out, attention_weights
+
+        # For debugging
+        # print(f'Attention weights: {attention_weights.shape}')
+        # print(f'Attention output: {out.shape}')
+
+        return out
     
 
 # class SelfAttention(torch.nn.Module):
@@ -164,16 +173,21 @@ class ModLogReg(torch.nn.Module):
     Logistic regression in Pytorch (single layer followed by softmax)
     '''
     def __init__(self, input_features, 
-                 out_features):
+                 out_features,
+                 return_scores=False):
 
         super(ModLogReg, self).__init__()
+        self.scores = return_scores
         self.linear = torch.nn.Linear(input_features, out_features)
         self.output_layer = torch.nn.Softmax(dim=-1)
 
     def forward(self, input:torch.tensor) -> torch.tensor:
         lin = self.linear(input)
         out = self.output_layer(lin)
-        return out 
+        if self.scores:
+            return input, out
+        else:
+            return out 
 
 
 class ModBertAttention(torch.nn.Module):
@@ -193,11 +207,12 @@ class ModBertAttention(torch.nn.Module):
     def forward(self, input:torch.tensor) -> Union[torch.tensor, 
                                                    tuple[torch.tensor, 
                                                          torch.tensor]]:
-        res, att = self.rnn(input)
+        res = self.rnn(input)
         lin = self.linear(res)
         out = self.output_layer(lin)
         if self.attention:
-            return att, out
+            #att = torch.sum(att, dim=1)
+            return res, out
         else:
             return out 
 

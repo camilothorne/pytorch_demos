@@ -11,7 +11,10 @@ def classif_exp(model:torch.nn.Module,
                 test_data:np.array,
                 labdict:dict,
                 name:str,
-                epochs:int) -> None:
+                y_df:pd.DataFrame,
+                features:list,
+                epochs:int,
+                scores:bool) -> None:
    '''
    Train and test document classifier 
    '''
@@ -106,6 +109,7 @@ def classif_exp(model:torch.nn.Module,
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
+                        scores=scores
                  )
 
    plot_training_curve(loss_history=loss_history, 
@@ -114,20 +118,36 @@ def classif_exp(model:torch.nn.Module,
 
    print(f"Performance on test set")
    print("--------------------")
-   print(test_variant(dnn=trained_model, 
-               X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
-               y_test=np.asarray(testt_labels),
-               labdict=labdict,
-               path=f"./plots_and_stats/preds_{name}.csv",
-               path_stats=f"./plots_and_stats/scores_{name}.csv",
-               my_device_name=device_name,
-               y_index=testt_index,
-               y_df=y_df
-               )
-         )
+   print(f"[Return scores/attention? {scores}]")
+
+   if scores:
+      print(test_variant_scores(dnn=trained_model, 
+                  X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
+                  y_test=np.asarray(testt_labels),
+                  labdict=labdict,
+                  path=f"./plots_and_stats/preds_{name}.csv",
+                  path_stats=f"./plots_and_stats/scores_{name}.csv",
+                  my_device_name=device_name,
+                  y_index=testt_index,
+                  features=features,
+                  y_df=y_df
+                  )
+            )
+   else:
+      print(test_variant(dnn=trained_model, 
+                  X_test=torch.tensor(testt_data, dtype=torch.float32).to(device), 
+                  y_test=np.asarray(testt_labels),
+                  labdict=labdict,
+                  path=f"./plots_and_stats/preds_{name}.csv",
+                  path_stats=f"./plots_and_stats/scores_{name}.csv",
+                  my_device_name=device_name,
+                  y_index=testt_index,
+                  y_df=y_df
+                  )
+            )
 
 
-def bow_attention(epochs)->None:
+def bow_attention(epochs:int, scores:bool)->None:
 
    '''
    Pre-process data using BOW encoder
@@ -145,17 +165,36 @@ def bow_attention(epochs)->None:
    print('Labels:', labeldict)
    train_data, test_data, val_data = bow_encode.split_data()
    print('Dimensions of training data: (data and labels):', train_data[0].shape, train_data[1].shape)
+   features = bow_encode.get_vectorizer().get_feature_names_out()
+   print(f'Features of interest: {len(features)}')
+   print(f'Last 5 features: {features[-6:-1]}')
    
    '''
    Run experiments
    '''
 
-   model_1 = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1], return_state=True)
-   classif_exp(model_1, 
-               train_data, 
-               val_data, 
-               test_data, 
-               labeldict, 
-               name="bow_bert_attention", 
-               y_df=bow_encode.get_raw_data(),
-               epochs=epochs)
+   if scores:
+      model = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1],
+                               return_attention=True)
+      classif_exp(model, 
+                  train_data, 
+                  val_data, 
+                  test_data, 
+                  labeldict, 
+                  name="bow_bert_attention", 
+                  y_df=bow_encode.get_raw_data(),
+                  features=features,
+                  epochs=epochs,
+                  scores=scores)
+   else:
+      model = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
+      classif_exp(model, 
+                  train_data, 
+                  val_data, 
+                  test_data, 
+                  labeldict, 
+                  name="bow_bert_attention", 
+                  y_df=bow_encode.get_raw_data(),
+                  features=features,
+                  epochs=epochs,
+                  scores=scores)

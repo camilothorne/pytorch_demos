@@ -194,9 +194,14 @@ def train_variant(dnn:torch.nn.Module,
 
             optimizer.zero_grad()
             if scores:
+                   #print(scores)
                    y_pred = dnn(X_train[start:start+batch_size])[-1] # forward pass
             else:
                    y_pred = dnn(X_train[start:start+batch_size]) # forward pass
+
+            #print(y_pred.shape)
+            #print(y_train[start:start+batch_size].shape)
+
             loss   = my_loss(y_pred, y_train[start:start+batch_size]) # training loss
             loss.backward()
             if clip_value > 0:
@@ -254,8 +259,8 @@ def test_variant(dnn:torch.nn.Module,
                  path:str,
                  path_stats:str,
                  my_device_name:str,
-                 y_index:np.array=None,
-                 y_df:pd.DataFrame=None,
+                 y_index:np.array,
+                 y_df:pd.DataFrame,
                  ) -> str:
     '''
     Measure classification performance (basic)
@@ -293,9 +298,8 @@ def test_variant(dnn:torch.nn.Module,
     df['Index'] = y_index
     df = df.merge(y_df, on='Index', how='inner')[['Gold', 'Pred', 'Index', 'Document']]
 
-    print()
+    print('Predictions:\n')
     print(df.head(3))
-    print()
 
     # Save predictions to CSV file
     df.to_csv(path, index=False)
@@ -321,8 +325,8 @@ def test_variant_one_hot(dnn:torch.nn.Module,
                  path:str,
                  path_stats:str,
                  my_device_name:str,
-                 y_index:np.array=None,
-                 y_df:pd.DataFrame=None,
+                 y_index:np.array,
+                 y_df:pd.DataFrame,
                  ) -> str:
     '''
     Measure classification performance
@@ -368,13 +372,93 @@ def test_variant_one_hot(dnn:torch.nn.Module,
 
     # Save attention scores
     if my_device_name == 'cpu':
-        df['Att'] = list(y_att.detach().numpy())
+        df['Scores'] = list(y_att.detach().numpy())
     else:
-        df['Att'] = list(y_att.detach().cpu().numpy())
+        df['Scores'] = list(y_att.detach().cpu().numpy())
 
     # Get truncated test sequences per example
     # (returns a list of tokens, one per score)
     df['Seq'] = df['Document'].apply(lambda x: x.lower().split(" ")[0:y_att.shape[1]])
+
+    print('Predictions:\n')
+    print(df.head(3))
+
+    # Save predictions to CSV file
+    df.to_csv(path, index=False)
+    
+    # Print and serialize the classification report
+    result = classification_report(df.Gold, 
+                                   df.Pred, 
+                                   zero_division=0)
+    result_dict = classification_report(df.Gold, 
+                                   df.Pred, 
+                                   zero_division=0,
+                                   output_dict=True)
+    df_res = df = pd.DataFrame(result_dict).transpose()
+    df_res.to_csv(path_stats)
+
+    return result
+
+
+def test_variant_scores(dnn:torch.nn.Module, 
+                 X_test:np.array, 
+                 y_test:np.array,
+                 labdict:dict,
+                 path:str,
+                 path_stats:str,
+                 my_device_name:str,
+                 y_index:np.array,
+                 features:list,
+                 y_df:pd.DataFrame,
+                 ) -> str:
+    '''
+    Measure classification performance with
+    BOW features and feature importance scores.
+    '''
+
+    # Label dictionary
+    labd = {v:k for k,v in labdict.items()}
+    
+    # Predictions
+    dnn.eval() # call model in eval mode
+
+    # Get predictions w. (attention) scores
+    y_sc, y_pred = dnn(X_test)
+    
+    # Tranfer tensors to CPU (if in GPU) else do nothing
+    if my_device_name != 'cpu':
+        y_pred = torch.argmax(y_pred, 1).cpu()
+    else:
+        y_pred = torch.argmax(y_pred, 1)
+    
+    # For debugging
+    # For debugging
+    print(f'Attention: {y_sc.shape}')
+    print(f'Predictions: {y_pred.shape}')
+    print(f'Gold: {y_test.shape}')
+
+    # Gold
+    y_test = np.argmax(y_test, axis=1)
+
+    # Serialize predictions and gold labels
+    y_df = y_df[['Document']]
+    y_df['Index'] = y_df.index
+    df = pd.DataFrame({"pred": y_pred.detach().numpy(), 
+                      "gold": y_test})
+    df['Gold'] = df.gold.astype(int).map(labd)
+    df['Pred'] = df.pred.astype(int).map(labd)
+    df['Index'] = y_index
+    df = df.merge(y_df, on='Index', how='inner')[['Gold', 'Pred', 'Index', 'Document']]
+
+    # Save (attention) scores
+    if my_device_name == 'cpu':
+        df['Scores'] = list(y_sc.detach().numpy())
+    else:
+        df['Scores'] = list(y_sc.detach().cpu().numpy())
+
+    # Get features per example
+    # (returns a list of tokens, one per score)
+    df['Feat'] = df.Index.apply(lambda x: str(x).replace(str(x), str(features)))
 
     print('Predictions:\n')
     print(df.head(3))

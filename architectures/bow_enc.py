@@ -47,7 +47,7 @@ class BoWEconde:
         return self._labdict
 
     def get_vectorizer(self):
-        return self._vectorizer()
+        return self._vectorizer
 
     def get_raw_labels(self):
         return self._raw_labels
