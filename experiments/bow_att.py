@@ -176,19 +176,10 @@ def bow_attention(epochs:int, scores:bool)->None:
    if scores:
       model = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1],
                                return_attention=True)
-      classif_exp(model, 
-                  train_data, 
-                  val_data, 
-                  test_data, 
-                  labeldict, 
-                  name="bow_bert_attention", 
-                  y_df=bow_encode.get_raw_data(),
-                  features=features,
-                  epochs=epochs,
-                  scores=scores)
    else:
       model = ModBertAttention(train_data[0].shape[1], train_data[1].shape[1])
-      classif_exp(model, 
+      
+   classif_exp(model, 
                   train_data, 
                   val_data, 
                   test_data, 
@@ -198,3 +189,12 @@ def bow_attention(epochs:int, scores:bool)->None:
                   features=features,
                   epochs=epochs,
                   scores=scores)
+      
+   print("--------------------")
+   m_path = "./models/bow_bert_attention.pt"
+   print(f"Saving model to {m_path}")
+   write_model_to_file(model, m_path)
+
+   print("--------------------")
+   print(f"Experiment completed")
+   print("--------------------")

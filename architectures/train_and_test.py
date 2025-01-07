@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from torch.nn.modules.module import _addindent
 from sklearn.metrics import classification_report
 
+import wandb
 
 
 class CustomCE(torch.nn.Module):
@@ -179,8 +180,24 @@ def train_variant(dnn:torch.nn.Module,
     # Detect anomalies
     torch.autograd.set_detect_anomaly(True) # check for anomaly in gradients
 
+    wandb.log(
+            {
+                "batch_size": batch_size,
+                "train_datasize": data_size,
+                "val_datasize": val_size
+            }
+    )
+
     print("--------------------")
     print(f'[Return scores/attention? {scores}]')
+    print("--------------------")
+    print(f'Learning rate: {my_lr}')
+    print(f'Momentum: {my_momentum}')
+    print(f'Weight decay: {my_weight_decay}')
+    print(f'Clip value: {clip_value}')
+    print(f'Training examples: {data_size}')
+    print(f'Validation examples: {val_size}')
+    print("--------------------")
     print(f"SGD for {epochs} epochs, with batch size {batch_size}:")
 
     for i in tqdm(range(epochs)):
@@ -248,6 +265,20 @@ def train_variant(dnn:torch.nn.Module,
     print("Accuracy (best): %.2f" % best_acc)
     print(loss_fun + " (best): %.2f" % best_loss)
     print("--------------------")
+
+    wandb.log(
+            {
+                "epoch": i,
+                "train_loss": loss.item(),
+                "val_acc": v_acc,
+                "val_acc_best": best_acc,
+                "val_loss": v_loss.item(),
+                "lr":my_lr,
+                "momentum": my_momentum,
+                "weight_decay": my_weight_decay,
+                "val_loss_best": best_loss
+            }
+    )
 
     return best_weights, dnn
 
@@ -432,10 +463,9 @@ def test_variant_scores(dnn:torch.nn.Module,
         y_pred = torch.argmax(y_pred, 1)
     
     # For debugging
-    # For debugging
-    print(f'Attention: {y_sc.shape}')
-    print(f'Predictions: {y_pred.shape}')
-    print(f'Gold: {y_test.shape}')
+    #print(f'Attention: {y_sc.shape}')
+    #print(f'Predictions: {y_pred.shape}')
+    #print(f'Gold: {y_test.shape}')
 
     # Gold
     y_test = np.argmax(y_test, axis=1)

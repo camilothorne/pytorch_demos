@@ -151,8 +151,9 @@ def one_hot_cnn(epochs)->None:
    Run experiments
    '''
 
-   model_o = TextConv1D(train_data[0].shape, train_data[1].shape[1])
-   classif_exp(model_o, 
+   model = TextConv1D(train_data[0].shape, train_data[1].shape[1])
+
+   classif_exp(model, 
                train_data, 
                val_data, 
                test_data, 
@@ -160,3 +161,12 @@ def one_hot_cnn(epochs)->None:
                name="onehot_conv1d",
                y_df=one_encode.get_raw_data(),
                epochs=epochs)
+   
+   print("--------------------")
+   m_path = "./models/onehot_conv1d.pt"
+   print(f"Saving model to {m_path}")
+   write_model_to_file(model, m_path)
+
+   print("--------------------")
+   print(f"Experiment completed")
+   print("--------------------")

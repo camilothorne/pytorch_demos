@@ -170,16 +170,16 @@ def one_hot_att(epochs:int, scores:bool)->None:
    
    if scores:
       # Returns attention scores
-      model_bl_att = TextLSTMAttention(in_features=train_data[0].shape, 
+      model = TextLSTMAttention(in_features=train_data[0].shape, 
                                        latent_dim=32, 
                                        out_features=train_data[1].shape[1],
                                        return_attention=True)
    else:
-      model_bl_att = TextLSTMAttention(in_features=train_data[0].shape, 
+      model = TextLSTMAttention(in_features=train_data[0].shape, 
                                       latent_dim=32, 
                                       out_features=train_data[1].shape[1])
 
-   classif_exp(model_bl_att, 
+   classif_exp(model, 
                train_data, 
                val_data, 
                test_data,
@@ -188,3 +188,12 @@ def one_hot_att(epochs:int, scores:bool)->None:
                epochs=epochs, 
                scores=scores,
                y_df=one_encode.get_raw_data())
+   
+   print("--------------------")
+   m_path = "./models/onehot_lstm_att.pt"
+   print(f"Saving model to {m_path}")
+   write_model_to_file(model, m_path)
+
+   print("--------------------")
+   print(f"Experiment completed")
+   print("--------------------")
