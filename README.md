@@ -21,15 +21,17 @@ pip install -r requirements.txt
 ```
 and to run the experiments, type
 ```
-python main.py -e <exp_name> -i <iter> [-s <flag>]
+python main.py -e <exp_name> -i <iter> [-s <flag>] [-w <flag>]
 ```
 `<exp_name>` should be one of `bow_base`, `one_hot_base`, `bow_att` or `one_hot_att` (a string), corresponding
 to the implementations described below. `<iter>` refers to the number of epochs (an integer). Lastly, 
-if option `-s` is set to (string) `yes`, the models will print feature and/or attention scores (depending on the model trained).
-For more information type `python main.py -h`. Please note that you might need to run a comparatively high number of
-training epochs until training with attention converges.
+if option `-s` is set to (string) `yes`, the models will print feature and/or attention scores (depending on the model trained). Finally if `-w` is set to `yes`, the experiments will be logged on the Weights & 
+Biases platform. For more information type `python main.py -h`. Please note that you might need to run a comparatively high number of training epochs until training with attention converges.
 
-The results of the experiments (learning curves, predictions and F1-scores) will be logged on the `plots_and_stats` folder.
+The results of the experiments (learning curves, predictions and F1-scores) will be logged on the `plots_and_stats` folder. And the checkpoints will be written to `models`.
+We advice creating a virtual environment (using e.g. Anaconda) before installing the requirements.
+
+For this demo, we rely on an [eCommerce product classification dataset](https://www.kaggle.com/datasets/carrie1/ecommerce-data), from Kaggle.
 
 ### Implementations
 
@@ -78,3 +80,8 @@ we define different attention flavors. We also include two baselines for compari
 
 1) MLP for BOW embeddings.
 2) Convolutional neural network for the one-hot embeddings.
+
+#### Note on Weights & Biases
+
+A popular tool to keep machine learning experimnt logs, and manage the lifecycle of models, are so-called
+machine learning operations (MLOps) frameworks. In this demo, we use [Weights & Biases](https://wandb.ai/site/), a SaaS MLOps platform that has the advantage of writing logs and model checkpoints to host independent cloud directories. In order to use it, you will have to configure it yourselves.
