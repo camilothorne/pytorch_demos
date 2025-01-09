@@ -155,6 +155,7 @@ def train_variant(dnn:torch.nn.Module,
                   loss_fun:str, # name of loss function
                   epochs:int,
                   scores:bool=False,
+                  wabdb:bool=False,
     ) -> tuple[dict, torch.nn.Module]:
     '''
     Train and validate model -
@@ -266,19 +267,20 @@ def train_variant(dnn:torch.nn.Module,
     print(loss_fun + " (best): %.2f" % best_loss)
     print("--------------------")
 
-    wandb.log(
-            {
-                "epoch": i,
-                "train_loss": loss.item(),
-                "val_acc": v_acc,
-                "val_acc_best": best_acc,
-                "val_loss": v_loss.item(),
-                "lr":my_lr,
-                "momentum": my_momentum,
-                "weight_decay": my_weight_decay,
-                "val_loss_best": best_loss
-            }
-    )
+    if wandb:
+        wandb.log(
+                {
+                    "epoch": i,
+                    "train_loss": loss.item(),
+                    "val_acc": v_acc,
+                    "val_acc_best": best_acc,
+                    "val_loss": v_loss.item(),
+                    "lr":my_lr,
+                    "momentum": my_momentum,
+                    "weight_decay": my_weight_decay,
+                    "val_loss_best": best_loss
+                }
+        )
 
     return best_weights, dnn
 

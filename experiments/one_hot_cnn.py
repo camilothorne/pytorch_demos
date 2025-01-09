@@ -12,7 +12,8 @@ def classif_exp(model:torch.nn.Module,
                 labdict:dict,
                 name:str,
                 y_df:pd.DataFrame,
-                epochs:int) -> None:
+                epochs:int,
+                wandb:bool) -> None:
    '''
    Train and test document classifier 
    '''
@@ -107,6 +108,7 @@ def classif_exp(model:torch.nn.Module,
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
+                        wandb=wandb
                  )
 
    plot_training_curve(loss_history=loss_history, 
@@ -128,7 +130,7 @@ def classif_exp(model:torch.nn.Module,
          )
 
 
-def one_hot_cnn(epochs)->None:
+def one_hot_cnn(epochs:int, my_wandb:bool=False)->None:
 
    '''
    Pre-process data using one hot encoder
@@ -160,7 +162,8 @@ def one_hot_cnn(epochs)->None:
                labeldict, 
                name="onehot_conv1d",
                y_df=one_encode.get_raw_data(),
-               epochs=epochs)
+               epochs=epochs,
+               wandb=my_wandb)
    
    print("--------------------")
    m_path = "./models/onehot_conv1d.pt"

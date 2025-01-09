@@ -14,7 +14,8 @@ def classif_exp(model:torch.nn.Module,
                 y_df:pd.DataFrame,
                 features:list,
                 epochs:int,
-                scores:bool) -> None:
+                scores:bool,
+                my_wandb:bool) -> None:
    '''
    Train and test document classifier 
    '''
@@ -109,7 +110,8 @@ def classif_exp(model:torch.nn.Module,
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
-                        scores=scores
+                        scores=scores,
+                        wandb=my_wandb
                  )
 
    plot_training_curve(loss_history=loss_history, 
@@ -147,7 +149,7 @@ def classif_exp(model:torch.nn.Module,
             )
 
 
-def bow_linear(epochs:int, scores:bool=False)->None:
+def bow_linear(epochs:int, scores:bool=False, my_wandb:bool=False)->None:
 
    '''
    Pre-process data using BOW encoder
@@ -187,4 +189,14 @@ def bow_linear(epochs:int, scores:bool=False)->None:
                y_df=bow_encode.get_raw_data(),
                features=features,
                epochs=epochs,
-               scores=scores)
+               scores=scores,
+               wandb=my_wandb)
+   
+   print("--------------------")
+   m_path = "./models/bow_log_reg.pt"
+   print(f"Saving model to {m_path}")
+   write_model_to_file(model, m_path)
+
+   print("--------------------")
+   print(f"Experiment completed")
+   print("--------------------")

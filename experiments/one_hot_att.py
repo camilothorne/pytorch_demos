@@ -13,7 +13,8 @@ def classif_exp(model:torch.nn.Module,
                 name:str,
                 epochs:int,
                 scores:bool,
-                y_df=pd.DataFrame) -> None:
+                y_df:pd.DataFrame,
+                my_wandb:bool) -> None:
    '''
    Train and test document classifier 
    '''
@@ -108,7 +109,8 @@ def classif_exp(model:torch.nn.Module,
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
-                        scores=scores
+                        scores=scores,
+                        wabdb=my_wandb
                  )
 
    plot_training_curve(loss_history=loss_history, 
@@ -145,7 +147,7 @@ def classif_exp(model:torch.nn.Module,
             )
 
 
-def one_hot_att(epochs:int, scores:bool)->None:
+def one_hot_att(epochs:int, scores:bool=False, my_wandb:bool=False)->None:
 
    '''
    Pre-process data using one hot encoder
@@ -187,7 +189,8 @@ def one_hot_att(epochs:int, scores:bool)->None:
                name="onehot_lstm_att", 
                epochs=epochs, 
                scores=scores,
-               y_df=one_encode.get_raw_data())
+               y_df=one_encode.get_raw_data(),
+               wandb=my_wandb)
    
    print("--------------------")
    m_path = "./models/onehot_lstm_att.pt"
