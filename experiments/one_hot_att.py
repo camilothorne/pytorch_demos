@@ -14,7 +14,7 @@ def classif_exp(model:torch.nn.Module,
                 epochs:int,
                 scores:bool,
                 y_df:pd.DataFrame,
-                my_wandb:bool) -> None:
+                wandb:bool) -> None:
    '''
    Train and test document classifier 
    '''
@@ -110,7 +110,7 @@ def classif_exp(model:torch.nn.Module,
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
                         scores=scores,
-                        wabdb=my_wandb
+                        my_wandb=wandb
                  )
 
    plot_training_curve(loss_history=loss_history, 

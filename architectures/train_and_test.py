@@ -155,7 +155,7 @@ def train_variant(dnn:torch.nn.Module,
                   loss_fun:str, # name of loss function
                   epochs:int,
                   scores:bool=False,
-                  wabdb:bool=False,
+                  my_wandb:bool=False,
     ) -> tuple[dict, torch.nn.Module]:
     '''
     Train and validate model -
@@ -181,13 +181,14 @@ def train_variant(dnn:torch.nn.Module,
     # Detect anomalies
     torch.autograd.set_detect_anomaly(True) # check for anomaly in gradients
 
-    wandb.log(
-            {
-                "batch_size": batch_size,
-                "train_datasize": data_size,
-                "val_datasize": val_size
-            }
-    )
+    if my_wandb:
+        wandb.log(
+                {
+                    "batch_size": batch_size,
+                    "train_datasize": data_size,
+                    "val_datasize": val_size
+                }
+        )
 
     print("--------------------")
     print(f'[Return scores/attention? {scores}]')
@@ -267,7 +268,7 @@ def train_variant(dnn:torch.nn.Module,
     print(loss_fun + " (best): %.2f" % best_loss)
     print("--------------------")
 
-    if wandb:
+    if my_wandb:
         wandb.log(
                 {
                     "epoch": i,

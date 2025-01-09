@@ -8,16 +8,16 @@ Argument parser
 
 parser = argparse.ArgumentParser(
                     prog='python main.py',
-                    description='A script for running PyTorch experiments.',
-                    epilog='For more information, refer to README.')
+                    description='CLI for running the PyTorch experiments.',
+                    epilog='For more information, refer to the README.')
 parser.add_argument('-e', '--exp', required=True,type=str,
                     help='choose an experiment: [bow_base, one_hot_base, bow_att, one_hot_att]')
 parser.add_argument('-i', '--iter', required=True, type=int,
                     help='number of epochs (integer)')
 parser.add_argument('-s', '--sc', required=False, type=str,
-                    help='if yes: returns attention scores for: [bow_base, bow_att, one_hot_att]')
+                    help='if set to yes: returns attention scores for [bow_base, bow_att, one_hot_att]')
 parser.add_argument('-w', '--wb', required=False, type=str,
-                    help='if yes: saves plots and checkpoints on weights & biases')
+                    help='if set to yes: saves plots and checkpoints on weights & biases')
 
 '''
 Parse arguments and options

@@ -108,7 +108,7 @@ def classif_exp(model:torch.nn.Module,
                         val_size=val_data[0].shape[0],
                         loss_fun="CE loss", # name of loss function
                         epochs=epochs,
-                        wandb=wandb
+                        my_wandb=wandb
                  )
 
    plot_training_curve(loss_history=loss_history, 
