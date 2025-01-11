@@ -99,15 +99,15 @@ class SeqAttention(torch.nn.Module):
         hid = self.hidden(input)
 
         # Alignment scores
-        e = torch.matmul(hid.transpose(1,2), hid)
+        e = torch.matmul(hid.transpose(1,2), hid) # keys x queries
 
         # Compute the weights
-        alpha = torch.nn.functional.softmax(e, dim=1)
+        alpha = torch.nn.functional.softmax(e, dim=1) # softmax of keys x queries
 
-        # Compute context
+        # Compute context 
         context = torch.sum(
                         torch.matmul(alpha, input.transpose(1,2)), 
-                        dim=1)
+                        dim=1) # keys x queries x values
 
         # For debugging
         #print('H_t (query):', input.shape)
