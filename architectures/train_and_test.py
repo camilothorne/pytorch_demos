@@ -389,7 +389,7 @@ def test_variant_one_hot(dnn:torch.nn.Module,
 
     # Normalize attention across sequence length
     # using softmax
-    y_att = torch.softmax(y_att, 1)
+    # y_att = torch.softmax(y_att, 1)
 
     # Gold
     y_test = np.argmax(y_test, axis=1)

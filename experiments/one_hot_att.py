@@ -169,16 +169,23 @@ def one_hot_att(epochs:int, scores:bool=False, my_wandb:bool=False)->None:
    '''
    Run experiment
    '''
+
+   if torch.backends.mps.is_available():
+      latent_dim = 32 # to avoid slow convergence / OOMs on M2
+   elif torch.cuda.is_available():
+      latent_dim = 128 # use CUDA for best results
+   else:
+      latent_dim  = 32 # to avoid slow convergence on CPU
    
    if scores:
       # Returns attention scores
       model = TextLSTMAttention(in_features=train_data[0].shape, 
-                                       latent_dim=32, 
+                                       latent_dim=latent_dim, 
                                        out_features=train_data[1].shape[1],
                                        return_attention=True)
    else:
       model = TextLSTMAttention(in_features=train_data[0].shape, 
-                                      latent_dim=32, 
+                                      latent_dim=latent_dim, 
                                       out_features=train_data[1].shape[1])
 
    classif_exp(model, 
