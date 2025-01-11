@@ -4,6 +4,10 @@ PyTorch demos and exercises written in pure Python. In these exercises
 we learn different text classifiers with and without attention, and that
 rely on various text encoding methods.
 
+---
+
+### Overview
+
 All models optimize a cross entropy multinomial objective
 (with each class encoded using one-hot vectors). We refer to the following definition
 of cross entropy
@@ -32,6 +36,8 @@ The results of the experiments (learning curves, predictions and F1-scores) will
 We advice creating a virtual environment (using e.g. Anaconda) before installing the requirements.
 
 For this demo, we rely on an [eCommerce product classification dataset](https://www.kaggle.com/datasets/carrie1/ecommerce-data), from Kaggle.
+
+---
 
 ### Implementations
 
@@ -81,7 +87,11 @@ we define different attention flavors. We also include two baselines for compari
 1) MLP for BOW embeddings.
 2) Convolutional neural network for the one-hot embeddings.
 
-#### Note on Weights & Biases
+---
 
-A popular tool to keep machine learning experimnt logs, and manage the lifecycle of models, are so-called
-machine learning operations (MLOps) frameworks. In this demo, we use [Weights & Biases](https://wandb.ai/site/), a SaaS MLOps platform that has the advantage of writing logs and model checkpoints to host independent cloud directories. In order to use it, you will have to configure it yourselves.
+#### NOTE [Weights & Biases]
+
+A popular tool to manage logs and the lifecycle of ML models are
+ML operations (MLOps) frameworks. In this demo we use [Weights & Biases](https://wandb.ai/site/), a SaaS MLOps platform that writes 
+logs and model checkpoints to host-independent cloud directories. If you want to use it, you'll need to create an account and
+configure your environment accordingly.
